@@ -23,7 +23,6 @@
 """The tests package.
 """
 
-from . import test_halostack
 import unittest
 import doctest
 
