@@ -13,7 +13,6 @@ class TestParser(unittest.TestCase):
         result = get_filenames(self.fnames)
         result.sort()
         self.assertItemsEqual(result, self.fnames)
-        self.assertEqual(len(result), len(self.fnames))
 
         result = get_filenames(self.fnames2)
         result.sort()
@@ -22,7 +21,6 @@ class TestParser(unittest.TestCase):
                                   'a1.jpg', 'a2.jpg']]
         correct_result.sort()
         self.assertItemsEqual(result, correct_result)
-        self.assertEqual(len(result), len(correct_result))
 
         result = get_filenames(self.fnames3)
         result.sort()
@@ -30,7 +28,14 @@ class TestParser(unittest.TestCase):
                           img in ['1.jpg', 'a1.jpg', 'a2.jpg']]
         correct_result.sort()
         self.assertItemsEqual(result, correct_result)
-        self.assertEqual(len(result), len(correct_result))
+
+    def assertItemsEqual(self, a, b):
+        for i in range(len(a)):
+            if isinstance(a[i], dict):
+                self.assertDictEqual(a[i], b[i])
+            else:
+                self.assertEqual(a[i], b[i])
+        self.assertEqual(len(a), len(b))
 
 
 def suite():
