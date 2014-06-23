@@ -12,20 +12,21 @@ Welcome to the halostack documentation!
 
 Nothing here yet.
 
-The source code of the package can be found at github, github_
+The source code of the package can be found at github, github_.
 
 .. _github: https://github.com/pnuu/halostack
 
 Contents
-+++++++++
+++++++++
 
 .. toctree::
    :maxdepth: 3
 
+   plan
    installation
    usage
    examples
-   api
+
 
 Indices and tables
 +++++++++++++++++++
