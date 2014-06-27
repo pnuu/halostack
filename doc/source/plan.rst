@@ -12,28 +12,34 @@ Config file usage
 -----------------
 
 - everything that is available also as command line switches
-- follow: Sun or Moon
+  .. - follow: Sun or Moon
 
   - lens information
   - pixel dimensions
   - location
 
 
-Image reading
--------------
+Image data I/O and conversions
+------------------------------
 
 - formats
 
-  - JPG
-  - TIFF
-  - PNG
-  - RAW (only linux?)
-  - HDF5 (only linux?)
+  - everything ImageMagick supports, relevant ones being:
 
-- convert to numpy arrays
+    - JPG
+    - TIFF
+    - PNG
+    - RAW input (only linux?)
+
+  - HDF5 using h5py (only linux?)
+
+- convert read image to numpy array
+- convert numpy array to ImageMagick format
 - keep linear, if possible
 - keep as integer data
-- read date and time
+- read date and time from EXIF
+
+  - separate CSV file needed for TIFF?
 
 Alignment prerequisites
 -----------------------
@@ -43,7 +49,8 @@ Alignment prerequisites
 
   - manual
 
-    - solar/lunar tracking based on date, time and location
+..  - solar/lunar tracking based on date, time and location
+..  - get another reference location from the last image
 
 Image co-alignment
 ------------------
