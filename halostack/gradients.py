@@ -33,17 +33,17 @@ class Gradient(object):
         self._zval = None
         self.gradient = None
 
-    def calculate_gradient(self, method):
+    def remove_gradient(self):
+        '''Subtract the precalculated(?) gradient from the image.
+        '''
+        pass
+
+    def _calculate_gradient(self, method):
         '''Calculate gradient from the image using the given method.
         param method: name of the method for calculating the gradient
         return gradient: array holding the calculated gradient
         '''
         # if-elif-else structure to handle the requested methods
-        pass
-
-    def remove_gradient(self):
-        '''Subtract the precalculated(?) gradient from the image.
-        '''
         pass
 
     def _blur(self):
