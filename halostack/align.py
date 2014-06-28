@@ -22,17 +22,35 @@
 
 '''Module for coaligning images'''
 
+import numpy as np
+
 class Align(object):
     '''Class to coalign images
     '''
-    def __init__(self, img):
+    def __init__(self, img, ref_loc=None, srch_area=None, mode='simple'):
+
+        modes = {'simple': self._simple_match}
+
         self.img = img
+        self.ref_loc = ref_loc
+        self.srch_area = srch_area
         self.ref = None
-        self.srch_area = None
+        try:
+            self.align_func = modes[mode]
+        except AttributeError:
+            self.align_func = self._simple_match
+
+        if ref_loc is not None:
+            self.ref = img[ref_loc[0]-ref_loc[2]:ref_loc[0]+ref_loc[2]+1,
+                           ref_loc[1]-ref_loc[2]:ref_loc[1]+ref_loc[2]+1]
+        if srch_area is None:
+            y_size, x_size = self.img.shape
+            self.srch_area = [0, 0, y_size, x_size]
 
     def set_reference(self):
         '''Let the user select the reference area.
         '''
+        # self.ref_loc
         pass
 
     def set_reference_area(self):
@@ -43,7 +61,12 @@ class Align(object):
     def align(self, img):
         '''Align the given image with the reference image.
         '''
-        pass
+
+        # Get the correlation and the location of the best match
+        corr, y_loc, x_loc = self.align_func(img)
+        # Shift the image
+
+        return img
 
     def _find_reference(self, img):
         '''Find the reference area from the given image.
@@ -55,10 +78,46 @@ class Align(object):
         '''
         pass
 
-    def _correlation_match(self, img):
-        '''Use correlation to find the best alignment. Slow.
+    def _simple_match(self, img):
+        '''Use least squared difference to find the best alignment. Slow.
         '''
-        pass
+
+        # Image and reference sizes
+        img_shp = list(img.shape)
+        # loop is from {x,y} +- ref_{x,y} so divide by two
+        ref_shp = [x/2 for x in self.ref.shape]
+
+        ylims, xlims = [0, 0], [0, 0]
+        ylims[0], xlims[0], ylims[1], xlims[1] = self.srch_area
+
+        # Check area limits
+        if xlims[0] < ref_shp[1]:
+            xlims[0] = ref_shp[1]
+        if ylims[0] < ref_shp[0]:
+            ylims[0] = ref_shp[0]
+        if xlims[1] >= img_shp[1] - ref_shp[1]:
+            xlims[1] = img_shp[1] - ref_shp[1] - 1
+        if ylims[1] >= img_shp[0] - ref_shp[0]:
+            ylims[1] = img_shp[0] - ref_shp[0] - 1
+
+        best_res = [2**64, None, None]
+
+        for i in range(xlims[0], xlims[1]):
+            xran = range(i-ref_shp[1], i+ref_shp[1]+1)
+            for j in range(ylims[0], ylims[1]):
+                sqdif = ((img[j-ref_shp[0]:j+ref_shp[0]+1,
+                              xran]-self.ref)**2).sum()
+                if sqdif < best_res[0]:
+                    best_res = [sqdif, i, j]
+
+        # Calculate correlation coeff for the best fit
+        best_fit_data = img[best_res[2]-ref_shp[0]:best_res[2]+ref_shp[0]+1,
+                            best_res[1]-ref_shp[1]:best_res[1]+ref_shp[1]+1]
+        best_fit_data = best_fit_data.flatten()
+        ref_flat = self.ref.flatten()
+        best_corr = np.corrcoef(best_fit_data, ref_flat)**2
+
+        return (best_corr[0, 1], best_res[1], best_res[2]) # corr, x, y
 
     def _calc_shift(self, img):
         '''Calculate how much the images need to be shifted.
