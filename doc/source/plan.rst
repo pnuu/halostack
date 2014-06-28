@@ -12,6 +12,7 @@ Config file usage
 -----------------
 
 - everything that is available also as command line switches
+
   .. - follow: Sun or Moon
 
   - lens information
@@ -50,7 +51,7 @@ Alignment prerequisites
   - manual
 
 ..  - solar/lunar tracking based on date, time and location
-..  - get another reference location from the last image
+..  - get reference locations from the first and last images
 
 Image co-alignment
 ------------------
