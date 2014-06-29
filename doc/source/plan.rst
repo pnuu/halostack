@@ -79,6 +79,7 @@ ___________________
     - random reference point selection?
     - isotropic reference point selection with area exclusion mask?
     - user supplied reference points?
+
       - from first image, use same locations for each image
       - select points individually for each image
 
