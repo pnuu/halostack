@@ -3,7 +3,7 @@ import os
 from halostack.align import Align
 import numpy as np
 
-class TestParser(unittest.TestCase):
+class TestAlign(unittest.TestCase):
     
     def setUp(self):
         # reference image
@@ -24,3 +24,10 @@ class TestParser(unittest.TestCase):
         correct_result = [1.0, 12, 12]
         result = self.align._simple_match(img)
         self.assertItemsEqual(result, correct_result)
+
+def suite():
+    """The suite for test_align
+    """
+    loader = unittest.TestLoader()
+    mysuite = unittest.TestSuite()
+    mysuite.addTest(loader.loadTestsFromTestCase(TestAlign))

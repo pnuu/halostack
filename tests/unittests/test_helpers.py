@@ -2,7 +2,7 @@ import unittest
 import os
 from halostack.helpers import get_filenames
 
-class TestParser(unittest.TestCase):
+class TestHelpers(unittest.TestCase):
     
     def setUp(self):
         self.fnames = ['tests/data/1.jpg', 'tests/data/2.jpg']
@@ -39,8 +39,8 @@ class TestParser(unittest.TestCase):
 
 
 def suite():
-    """The suite for test_parser
+    """The suite for test_helpers
     """
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestParser))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestHelpers))

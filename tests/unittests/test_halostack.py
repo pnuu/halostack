@@ -2,7 +2,7 @@ import unittest
 
 #from halostack import foo
 
-class TestParser(unittest.TestCase):
+class TestHalostack(unittest.TestCase):
     
     def setUp(self):
         pass
@@ -17,8 +17,8 @@ class TestParser(unittest.TestCase):
 
 
 def suite():
-    """The suite for test_parser
+    """The suite for test_halostack
     """
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestParser))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestHalostack))

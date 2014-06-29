@@ -30,95 +30,138 @@ import numpy as np
 class Image(object):
     '''Image class'''
 
-    def __init__(self):
-        self.img = None
-        self.fname = None
+    def __init__(self, img=None, fname=None):
+        self.img = img
+        self.fname = fname
+
+        if fname is not None:
+            self._read()
 
     def __add__(self, img):
+        self._to_numpy()
         if isinstance(img, Image):
-            return Image(self.img + img.img)
+            return Image(img=self.img+img.img)
         else:
             # Assume a numpy array or scalar
-            return Image(self.img + img)
+            return Image(img=self.img+img)
+
+    def __radd__(self, img):
+        return self.__add__(img)
 
     def __sub__(self, img):
+        self._to_numpy()
         if isinstance(img, Image):
-            return Image(self.img - img.img)
+            return Image(img=self.img-img.img)
         else:
             # Assume a numpy array or scalar
-            return Image(self.img - img)
+            return Image(img=self.img-img)
 
-    def __mult__(self, img):
+    def __mul__(self, img):
+        self._to_numpy()
         if isinstance(img, Image):
-            return Image(self.img * img.img)
+            return Image(img=self.img*img.img)
         else:
             # Assume a numpy array or scalar
-            return Image(self.img * img)
+            return Image(img=self.img*img)
+
+    def __rmul__(self, img):
+        return self.__mul__(img)
 
     def __div__(self, img):
+        self._to_numpy()
         if isinstance(img, Image):
-            return Image(self.img / img.img)
+            return Image(img=self.img/img.img)
         else:
             # Assume a numpy array or scalar
-            return Image(self.img / img)
+            return Image(img=self.img/img)
 
     def __abs__(self):
-        return Image(np.abs(self.img))
+        self._to_numpy()
+        return Image(img=np.abs(self.img))
 
-    def read(self):
+    def __lt__(self, img):
+        self._to_numpy()
+        if isinstance(img, Image):
+            img = img.img
+        return self.img < img
+
+    def __le__(self, img):
+        self._to_numpy()
+        if isinstance(img, Image):
+            img = img.img
+        return self.img <= img
+
+    def __gt__(self, img):
+        self._to_numpy()
+        if isinstance(img, Image):
+            img = img.img
+        return self.img > img
+
+    def __ge__(self, img):
+        self._to_numpy()
+        if isinstance(img, Image):
+            img = img.img
+        return self.img >= img
+
+    def __eq__(self, img):
+        self._to_numpy()
+        if isinstance(img, Image):
+            img = img.img
+        return self.img == img
+
+    def __getitem__(self, idx):
+        self._to_numpy()
+        return self.img[idx]
+
+    def __setitem__(self, idx, val):
+        self._to_numpy()
+        self.img[idx] = val
+
+    def _read(self):
         '''Read the image.
         '''
-        pass
-
-    def save(self):
-        '''Save the image data.
-        '''
-        pass
+        self.img = PMImage(self.fname)
 
     def _to_numpy(self):
-        '''Convert the image data to numpy array.
+        '''Convert from PMImage to numpy.
         '''
-        self.img.magick('RGB')
-        blob = Blob()
-        self.img.write(blob)
-        data = blob.data
-        if self.img.depth() == 8:
-            img = np.fromstring(data, dtype='uint8')
-        else:
-            img = np.fromstring(data, dtype='uint16')
-
-        height, width, chans = img.rows(), img.columns(), 3
-        if img.monochrome():
-            chans = 1
-
-        self.img = img.reshape(height, width, chans)
+        self.img = to_numpy(self.img)
 
     def _to_imagemagick(self):
-        '''Convert the numpy array to Imagemagick format.
+        '''Convert from numpy to PMImage.
         '''
-        if not isinstance(self.img, PMImage):
-            img = PMImage()
-            if self.img.dtype == 'uint16':
-                img.depth(16)
-            else:
-                img.depth(8)
-            img.magick('RGB')
-            shape = img.shape
-            img.size(str(shape[1])+'x'+str(shape[0]))
-            blob = Blob()
-            blob.data = self.img.tosting()
-            img.read(blob)
-            img.magick('PNG')
+        self.img = to_numpy(self.img)
 
-            self.img = img
+    def save(self, fname):
+        '''Save the image data.
+        '''
+        self._to_imagemagick()
+        self.img.write(fname)
+
+    def min(self):
+        '''Return the minimum value in the image.
+        '''
+        self._to_numpy()
+        return np.min(self.img)
+
+    def max(self):
+        '''Return the maximum value in the image.
+        '''
+        self._to_numpy()
+        return np.max(self.img)
+
+    def astype(self, dtype):
+        '''Return the image with the given dtype.
+        '''
+        return self.img.astype(dtype)
 
     def luminance(self):
         '''Return luminance (channel average).
         '''
-        if self.img.shape == 3:
-            return np.mean(self.img, 2)
+        if len(self.img.shape) == 3:
+            return Image(img=np.mean(self.img, 2))
         else:
-            return self.img
+            return Image(img=self.img)
 
     def process(self, funcs):
         '''Process the image with the given function(s) and arguments.
@@ -136,49 +179,95 @@ class Image(object):
             self.img = func(*funcs[key])
 
     def _usm(self, radius, sigma, amount, threshold):
-        '''Return unsharp mask sharpened image.
+        '''Unsharp mask sharpen the image.
         '''
-        img = self._to_imagemagick()
-        img.unsharpmask(radius, sigma, amount, threshold)
+        self._to_imagemagick()
+        self.img.unsharpmask(radius, sigma, amount, threshold)
 
     def _emboss(self):
-        '''Return emboss filtered image.
+        '''Emboss filter the image. Actually uses shade() from
+        ImageMagick.
         '''
-        pass
+        self._to_imagemagick()
+        self.img.emboss(90, 45)
 
-    def _gamma(self):
-        '''Return gamma corrected image.
+    def _gamma(self, gamma):
+        '''Apply gamma correction to the image.
         '''
-        pass
+        self._to_imagemagick()
+        self.img.gamma(gamma)
 
     def _channel_difference(self, chan1, chan2, multiplier=1):
-        '''Return channel difference: chan1 * multiplier - chan2.
+        '''Calculate channel difference: chan1 * multiplier - chan2.
         '''
-        return multiplier * self.img[:, :, chan1] - self.img[:, :, chan2]
-
+        self._to_numpy()
+        self.img = multiplier * self.img[:, :, chan1] - self.img[:, :, chan2]
 
     def _blue_red_subtract(self, multiplier):
         '''Subtract red channel from the blue channel after scaling
         the blue channel using the supplied multiplier.
         '''
-        return self._channel_difference(2, 0, multiplier=multiplier)
+        self._channel_difference(2, 0, multiplier=multiplier)
 
     def _red_green_subtract(self, multiplier):
         '''Subtract green channel from the red channel after scaling
         the red channel using the supplied multiplier.
         '''
-        return self._channel_difference(0, 1, multiplier=multiplier)
+        self._channel_difference(0, 1, multiplier=multiplier)
 
     def _rgb_subtract(self):
         '''Subtract the mean(r,g,b) from all the channels.
         '''
-        return self.img - self.luminance()
+        self._to_numpy()
+        self.img -= self.luminance()
 
     def _gradient(self):
-        '''Return image with the background gradient subtracted.
+        '''Remove the background gradient.
         '''
+        self._to_numpy()
         grad = Gradient()
         grad.remove_gradient()
-        img = self.img
+        self.img = self.img
 
-        return img
+
+def to_numpy(img):
+    '''Convert the image data to numpy array.
+    '''
+
+    if not isinstance(img, np.ndarray):
+        img.magick('RGB')
+        blob = Blob()
+        img.write(blob)
+        data = blob.data
+        if img.depth() == 8:
+            out_img = np.fromstring(data, dtype='uint8')
+        else:
+            out_img = np.fromstring(data, dtype='uint16')
+
+        height, width, chans = img.rows(), img.columns(), 3
+        if img.monochrome():
+            chans = 1
+
+        return out_img.reshape(height, width, chans)
+
+    return img
+
+def to_imagemagick(img):
+    '''Convert the numpy array to Imagemagick format.
+    '''
+    if not isinstance(img, PMImage):
+        out_img = PMImage()
+        if img.dtype == 'uint16':
+            out_img.depth(16)
+        else:
+            out_img.depth(8)
+        out_img.magick('RGB')
+        shape = out_img.shape
+        out_img.size(str(shape[1])+'x'+str(shape[0]))
+        blob = Blob()
+        blob.data = img.tosting()
+        out_img.read(blob)
+        out_img.magick('PNG')
+
+        return out_img
+    return img
