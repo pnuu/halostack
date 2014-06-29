@@ -184,7 +184,7 @@ class Image(object):
             func = getattr(key, functions)
             self.img = func(*funcs[key])
 
-    def _channel_difference(self, chan1, chan2, multiplier=1):
+    def _channel_difference(self, chan1, chan2, multiplier=1.0):
         '''Calculate channel difference: chan1 * multiplier - chan2.
         '''
         self._to_numpy()
