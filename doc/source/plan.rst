@@ -13,56 +13,79 @@ Config file usage
 
 - everything that is available also as command line switches
 
-  .. - follow: Sun or Moon
+  - follow: Sun or Moon
+
+    - will need pyephem, only linux?
 
   - lens information
+
+    - projection
+    - focal length
+
   - pixel dimensions
   - location
 
 
-Image data I/O and conversions
+Image input and conversions
 ------------------------------
 
 - formats
 
   - everything ImageMagick supports, relevant ones being:
 
-    - JPG
-    - TIFF
-    - PNG
-    - RAW input (only linux?)
+    - JPG --- **check**
+    - TIFF --- **check**
+    - PNG --- **check**
+    - RAW with IM+dcraw (only linux?)
 
-  - HDF5 using h5py (only linux?)
-
-- convert read image to numpy array
-- convert numpy array to ImageMagick format
-- keep linear, if possible
-- keep as integer data
+- convert image to numpy array --- **check**
+- convert numpy array to ImageMagick format --- **check**
 - read date and time from EXIF
 
-  - separate CSV file needed for TIFF?
+  - python-exif for linux, windows?
+  - separate CSV file needed for TIFF and/or windows?
 
 Alignment prerequisites
 -----------------------
 
-- focus point selection
-- selection of area for focus point during the stack
+- focus reference selection
 
   - manual
 
-..  - solar/lunar tracking based on date, time and location
-..  - get reference locations from the first and last images
+    - matplotlib
+
+- selection of area where focus point stays during the stack duration
+
+  - manual
+
+    - matplotlib
+
+  - solar/lunar tracking based on date, time, location and idealized lens model
+
+    - get reference locations from the first and last images
 
 Image co-alignment
 ------------------
 
 - lens projection handling
-- find the focus point
-- image resampling/shifting
-- image rotation
 
-  - manual
+  - convert all the images to RA/DEC coordinates if Sun or Moon used?
+
+- calculate rotation
+
   - solar/lunar tracking based on date, time, location and lens projection
+
+- rotate image
+  
+  - adjust search area?
+
+- calculate shift
+
+  - reference correlation
+  - solar/lunar tracking based on date, time, location and lens projection
+
+- shift image
+
 
 Image stacking
 --------------
@@ -70,50 +93,78 @@ Image stacking
 Image preprocessing
 ___________________
 
-- remove gradients
+- subtract bias?
+- flat correction?
+  - would reduce the effect of dust
 
-  - use blurred version of the image
-  - use gradient model
+- remove sky gradient
 
-    - fit the gradient plane: ax^2 + by^2 + cx + dy + e
-    - random reference point selection?
-    - isotropic reference point selection with area exclusion mask?
+  - blurred (with large radius) version of the image
+
+    - simple, easy to implement
+    - halos affect slightly the resulting background value
+
+  - gradient model
+
+    - gradient plane: ax^2 + by^2 + cx + dy + e
+    - uniform reference point selection?
+
+      - area exclusion mask?
+      - discard a point if too large difference compared to neighbours?
+
+	- median filtering for reference points?
+	- would reduce the effect of halos
+
     - user supplied reference points?
 
       - from first image, use same locations for each image
       - select points individually for each image
 
-
 Calculate stacks
 ________________
-- average
-- median
-- minimum
-- maximum
+
+- average --- **check**
+- median --- **check**
+
+  - needs lots of RAM, or memmap'd HDF5 (only linux?)
+  - would be useful for making flat-field images
+  - but not really needed?
+
+- minimum --- **check**
+- maximum --- **check**
 - sigma-average
+
+  - really necessary?
+  - needs lots of RAM, or memmap'd HDF5 (only linux?)
 
 Image postprocessing
 ____________________
-- remove gradients
 
-  - select points for gradient removal
+- remove gradients?
 
-- B-R
+  - should be done before stacking
+  - select points or use blur
 
+- B-R --- **check**
+
+  - user supplied multiplier (default: 1.0) --- **check**
   - select points to calculate optimal multiplier for R-channel
   - http://opticsaround.blogspot.fr/2013/03/le-traitement-bleu-moins-rouge-blue.html
 
-- R, G, B = (R, G, B) - average(R, G, B)
-- USM
-- emboss
-- gamma
+- R, G, B = (R, G, B) - average(R, G, B) --- **check**
+- USM --- **check**
+- emboss --- **check**
+- gamma --- **check**
 
-Image/data output
+Image output
 -----------------
 
 - scale data to cover full range of the format
+
+  - mean
+  - sigma-mean
+
 - formats
 
   - 8/16-bit PNG
   - JPG preview
-  - HDF5 (double, only linux?)
