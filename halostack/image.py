@@ -56,6 +56,12 @@ class Image(object):
             # Assume a numpy array or scalar
             return Image(img=self.img-img)
 
+    def __rsub__(self, img):
+        return self.__add__(img)
+
+    def __isub__(self, img):
+        self.img = self.__sub__(img)
+
     def __mul__(self, img):
         self._to_numpy()
         if isinstance(img, Image):
@@ -153,7 +159,7 @@ class Image(object):
     def astype(self, dtype):
         '''Return the image with the given dtype.
         '''
-        return self.img.astype(dtype)
+        return Image(img=self.img.astype(dtype))
 
     def luminance(self):
         '''Return luminance (channel average).
@@ -178,25 +184,6 @@ class Image(object):
             func = getattr(key, functions)
             self.img = func(*funcs[key])
 
-    def _usm(self, radius, sigma, amount, threshold):
-        '''Unsharp mask sharpen the image.
-        '''
-        self._to_imagemagick()
-        self.img.unsharpmask(radius, sigma, amount, threshold)
-
-    def _emboss(self):
-        '''Emboss filter the image. Actually uses shade() from
-        ImageMagick.
-        '''
-        self._to_imagemagick()
-        self.img.emboss(90, 45)
-
-    def _gamma(self, gamma):
-        '''Apply gamma correction to the image.
-        '''
-        self._to_imagemagick()
-        self.img.gamma(gamma)
-
     def _channel_difference(self, chan1, chan2, multiplier=1):
         '''Calculate channel difference: chan1 * multiplier - chan2.
         '''
@@ -219,7 +206,7 @@ class Image(object):
         '''Subtract the mean(r,g,b) from all the channels.
         '''
         self._to_numpy()
-        self.img -= self.luminance()
+        self.img -= self.luminance().img
 
     def _gradient(self):
         '''Remove the background gradient.
@@ -229,6 +216,24 @@ class Image(object):
         grad.remove_gradient()
         self.img = self.img
 
+    def _usm(self, radius, sigma, amount, threshold):
+        '''Unsharp mask sharpen the image.
+        '''
+        self._to_imagemagick()
+        self.img.unsharpmask(radius, sigma, amount, threshold)
+
+    def _emboss(self):
+        '''Emboss filter the image. Actually uses shade() from
+        ImageMagick.
+        '''
+        self._to_imagemagick()
+        self.img.emboss(90, 45)
+
+    def _gamma(self, gamma):
+        '''Apply gamma correction to the image.
+        '''
+        self._to_imagemagick()
+        self.img.gamma(gamma)
 
 def to_numpy(img):
     '''Convert the image data to numpy array.

@@ -20,7 +20,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-'''Module for stacking images'''
+'''Module for image stacks'''
 
 import numpy as np
 from halostack.image import Image
@@ -38,7 +38,7 @@ class Stack(object):
                                         'calc': None},
                                 'mean': {'update': self._update_mean,
                                          'calc': self._calculate_mean},
-                                #'sigma': {'update': self._update_deep,
+                                # 'sigma': {'update': self._update_deep,
                                 #          'calc': self._calculate_sigma},
                                 'median': {'update': self._update_deep,
                                            'calc': self._calculate_median}}
@@ -54,7 +54,6 @@ class Stack(object):
             img = Image(img=img)
 
         self._update_stack(image.to_numpy(img))
-        self._num += 1
 
     def calculate(self):
         '''Calculate the result image and return Image object.
@@ -67,14 +66,15 @@ class Stack(object):
         '''Update the stack
         '''
         self._update_func(img)
+        self._num += 1
 
     def _update_mean(self, img):
         '''Update average stack
         '''
         if self.stack is None:
-            self.stack = img.astype(np.float)
+            self.stack = img.astype(np.float).img
         else:
-            self.stack += img
+            self.stack += img.img
 
     def _update_min(self, img):
         '''Update minimum stack.
@@ -102,13 +102,13 @@ class Stack(object):
         '''
         if self.stack is None:
             self.stack = {}
-            shape = img.shape[:2]
+            shape = img.img.shape[:2]
             self.stack['R'] = np.empty((shape[0], shape[1], self.num),
-                                       dtype=img.dtype)
+                                       dtype=img.img.dtype)
             self.stack['G'] = np.empty((shape[0], shape[1], self.num),
-                                       dtype=img.dtype)
+                                       dtype=img.img.dtype)
             self.stack['B'] = np.empty((shape[0], shape[1], self.num),
-                                       dtype=img.dtype)
+                                       dtype=img.img.dtype)
 
         self.stack['R'][:, :, self._num] = img[:, :, 0]
         self.stack['G'][:, :, self._num] = img[:, :, 1]
@@ -131,8 +131,8 @@ class Stack(object):
         shape = ch_r.shape[:2]
         img = np.empty((shape[0], shape[1], 3), dtype=self.stack['R'].dtype)
         img[:, :, 0] = ch_r.astype(self.stack['R'].dtype)
-        img[:, :, 1] = ch_r.astype(self.stack['G'].dtype)
-        img[:, :, 2] = ch_r.astype(self.stack['B'].dtype)
+        img[:, :, 1] = ch_g.astype(self.stack['G'].dtype)
+        img[:, :, 2] = ch_b.astype(self.stack['B'].dtype)
 
         return Image(img=img)
 

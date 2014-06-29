@@ -7,14 +7,13 @@ import numpy as np
 class TestStack(unittest.TestCase):
     
     def setUp(self):
-        self.mean = Stack('mean', 3)
         self.median = Stack('median', 3)
 
         self.img1 = Image(img=np.zeros((3, 3, 3), dtype=np.uint8))
         self.img2 = Image(img=np.zeros((3, 3, 3), dtype=np.uint8)+1)
         self.img3 = Image(img=np.zeros((3, 3, 3), dtype=np.uint8)+2)
 
-    def test_update_stack_min(self):
+    def test_min_stack(self):
         stack = Stack('min', 2)
         self.assertEqual(stack.mode, 'min')
         self.assertEqual(stack.num, 2)
@@ -25,9 +24,9 @@ class TestStack(unittest.TestCase):
         self.assertItemsEqual(stack.stack.img, correct_result)
 
         stack._update_stack(self.img2)
-        self.assertItemsEqual(stack.stack.img, correct_result)
+        self.assertItemsEqual(stack.calculate().img, correct_result)
 
-    def test_update_stack_max(self):
+    def test_max_stack(self):
         stack = Stack('max', 2)
         self.assertEqual(stack.mode, 'max')
         self.assertEqual(stack.num, 2)
@@ -35,11 +34,43 @@ class TestStack(unittest.TestCase):
 
         stack._update_stack(self.img1)
         correct_result = np.zeros((3, 3, 3), dtype=np.uint8)
-        self.assertItemsEqual(stack.stack.img, correct_result)
+        self.assertItemsEqual(stack.calculate().img, correct_result)
 
         stack._update_stack(self.img2)
         correct_result = np.zeros((3, 3, 3), dtype=np.uint8)+1
         self.assertItemsEqual(stack.stack.img, correct_result)
+
+    def test_mean_stack(self):
+        stack = Stack('mean', 3)
+        self.assertEqual(stack.mode, 'mean')
+        self.assertEqual(stack.num, 3)
+        self.assertEqual(stack._num, 0)
+        stack._update_stack(self.img1)
+        self.assertEqual(stack._num, 1)
+        stack._update_stack(self.img2)
+        self.assertEqual(stack._num, 2)
+        stack._update_stack(self.img3)
+        self.assertEqual(stack._num, 3)
+        self.assertItemsEqual(stack.stack, 3*np.ones((3, 3, 3),
+                                                     dtype=np.uint8))
+        result = stack.calculate().img
+        self.assertItemsEqual(result, np.ones((3, 3, 3), dtype=np.uint16))
+
+    def test_median_stack(self):
+        stack = Stack('median', 3)
+        self.assertEqual(stack.mode, 'median')
+        self.assertEqual(stack.num, 3)
+        self.assertEqual(stack._num, 0)
+        stack._update_stack(self.img1)
+        self.assertEqual(stack._num, 1)
+        stack._update_stack(self.img2)
+        self.assertEqual(stack._num, 2)
+        stack._update_stack(self.img3)
+        self.assertEqual(stack._num, 3)
+        self.assertItemsEqual(stack.calculate().img, np.ones((3, 3, 3),
+                                                             dtype=np.uint8))
+        result = stack.calculate().img
+        self.assertItemsEqual(result, np.ones((3, 3, 3), dtype=np.uint16))
 
     def assertItemsEqual(self, a, b):
         if isinstance(a, np.ndarray):

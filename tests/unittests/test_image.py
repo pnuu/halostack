@@ -10,7 +10,10 @@ class TestImage(unittest.TestCase):
         self.img2 = Image(img=np.ones((3, 3)))
         self.img3 = Image(img=2*np.ones((3, 3)))
         self.img4 = Image(img=3*np.ones((3, 3)))
-#        self.img_rgb = Image(img=np.array([[[0])
+        rgb_arr = np.ones((3, 3, 3))
+        rgb_arr[:, :, 1] += 1
+        rgb_arr[:, :, 2] += 2
+        self.img_rgb = Image(img=rgb_arr)
 
     def test_add(self):
         result = self.img1 + self.img2
@@ -98,10 +101,30 @@ class TestImage(unittest.TestCase):
         correct_result = 1
         self.assertEqual(result, correct_result)
 
-#    def test_luminance(self):
-#        result = self.img2.luminance()
-#        print result
-#        self.assertEqual(self.img2.img, result.img)
+    def test_luminance(self):
+        # B&W image
+        result = self.img2.luminance()
+        self.assertItemsEqual(self.img2.img, result.img)
+        # RGB image
+        result = self.img_rgb.luminance()
+        self.assertItemsEqual(self.img3.img, result.img)
+
+    def test_channel_differences(self):
+        # B-R
+        img = 1*self.img_rgb
+        img._blue_red_subtract(1)
+        self.assertItemsEqual(self.img3.img, img.img)
+        img = 1*self.img_rgb
+        img._red_green_subtract(2)
+        self.assertItemsEqual(self.img1.img, img.img)
+
+    def test_rgb_subtract(self):
+        img = 1*self.img_rgb
+        img._rgb_subtract()
+        correct_result = np.zeros((3, 3, 3))
+        correct_result[:, :, 0] = -1
+        correct_result[:, :, 2] = 1
+        self.assertItemsEqual(correct_result, img.img)
 
     def assertItemsEqual(self, a, b):
         if isinstance(a, np.ndarray):
