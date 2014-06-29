@@ -72,11 +72,16 @@ ___________________
 
 - remove gradients
 
+  - use blurred version of the image
   - use gradient model
 
     - fit the gradient plane: ax^2 + by^2 + cx + dy + e
+    - random reference point selection?
+    - isotropic reference point selection with area exclusion mask?
+    - user supplied reference points?
+      - from first image, use same locations for each image
+      - select points individually for each image
 
-  - use blurred version of the image
 
 Calculate stacks
 ________________

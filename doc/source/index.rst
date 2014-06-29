@@ -10,7 +10,7 @@
 Welcome to the halostack documentation!
 =========================================
 
-Nothing here yet.
+Very little here, but as the software gets to first *master* branch release, there should be more-or-less complete documentation available.
 
 The source code of the package can be found at github, github_.
 
