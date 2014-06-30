@@ -226,7 +226,9 @@ class Image(object):
         '''
         self._to_numpy()
         img = 1.0*self.img - np.min(self.img)
-        img = (2**bits - 1) * img / np.max(img)
+        img_max = np.max(img)
+        if img_max != 0:
+            img = (2**bits - 1) * img / img_max
         if bits <= 8:
             self.img = img.astype('uint8')
         else:
