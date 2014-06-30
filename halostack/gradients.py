@@ -22,44 +22,55 @@
 
 '''Module for removing gradients from images'''
 
+# from halostack.image import Image
+import numpy as np
+
 class Gradient(object):
     '''Gradient removel class'''
 
-    def __init__(self):
-        self.img = None
-        self.method = None
-        self._xloc = None
-        self._yloc = None
-        self._zval = None
+    def __init__(self, img, method, *args):
+        self.img = img
+        self.method = method
         self.gradient = None
+        self.args = args
+        self._x_pts = None
+        self._y_pts = None
 
-    def remove_gradient(self):
+    def remove_gradient(self, method):
         '''Subtract the precalculated(?) gradient from the image.
         '''
-        pass
+        self._calculate_gradient(method)
+        self.img -= self.gradient
 
     def _calculate_gradient(self, method):
         '''Calculate gradient from the image using the given method.
         param method: name of the method for calculating the gradient
         return gradient: array holding the calculated gradient
         '''
-        # if-elif-else structure to handle the requested methods
-        pass
+
+        methods = {'blur': self._blur,
+                   'user': self._get_user_points,
+                   'random': self._random_points,
+                   'grid': self._grid_points,
+                   'mask': self._mask_points,
+                   'all': None
+                   }
+
+        func = methods[method]
+        func()
 
     def _blur(self):
         '''Blur the image to get the approximation of the background gradient.
         '''
         pass
 
-    def _guess_points(self):
+    def _random_points(self):
         '''Automatically extract background points for gradient estimation.
         '''
-        # The points should not deviate too much from the surrounding
-        # points, and the points "too far" should be left out.
-        # Leave the exclusion to _fit_surface()?
-        # The values should be quite close to median value?
-        # Select the points uniformly?
-        pass
+        luminance = self.img.luminance()
+        shape = luminance.img.shape
+        self._y_pts = np.random.randint(shape[0], size=(self.args,))
+        self._x_pts = np.random.randint(shape[1], size=(self.args,))
 
     def _get_user_points(self):
         '''Get background points from the user input (clicking with

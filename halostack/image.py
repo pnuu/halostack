@@ -30,12 +30,14 @@ import numpy as np
 class Image(object):
     '''Image class'''
 
-    def __init__(self, img=None, fname=None):
+    def __init__(self, img=None, fname=None, adjustments=None):
         self.img = img
         self.fname = fname
 
         if fname is not None:
             self._read()
+        if adjustments:
+            self._adjust(adjustments)
 
     def __add__(self, img):
         self._to_numpy()
@@ -173,7 +175,7 @@ class Image(object):
         else:
             return Image(img=self.img)
 
-    def _adjust(self, funcs):
+    def _adjust(self, adjustments):
         '''Adjust the image with the given function(s) and arguments.
         '''
         self._to_imagemagick()
@@ -185,9 +187,9 @@ class Image(object):
                      'rgb_sub': self._rgb_subtract,
                      'gradient': self._gradient
                      }
-        for key in funcs:
-            func = getattr(key, functions)
-            self.img = func(*funcs[key])
+        for key in adjustments:
+            func = functions[key]
+            self.img = func(*adjustments[key])
 
     def _channel_difference(self, chan1, chan2, multiplier=1.0):
         '''Calculate channel difference: chan1 * multiplier - chan2.
@@ -217,8 +219,8 @@ class Image(object):
         '''Remove the background gradient.
         '''
         self._to_numpy()
-        grad = Gradient()
-        grad.remove_gradient()
+#        grad = Gradient(self.img, method, *args)
+#        grad.remove_gradient()
         self.img = self.img
 
     def _scale(self, bits):
