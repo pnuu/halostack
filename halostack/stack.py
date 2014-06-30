@@ -72,9 +72,9 @@ class Stack(object):
         '''Update average stack
         '''
         if self.stack is None:
-            self.stack = img.astype(np.float).img
+            self.stack = img.astype(np.float)
         else:
-            self.stack += img.img
+            self.stack += img
 
     def _update_min(self, img):
         '''Update minimum stack.

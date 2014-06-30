@@ -51,10 +51,15 @@ class TestStack(unittest.TestCase):
         self.assertEqual(stack._num, 2)
         stack._update_stack(self.img3)
         self.assertEqual(stack._num, 3)
-        self.assertItemsEqual(stack.stack, 3*np.ones((3, 3, 3),
-                                                     dtype=np.uint8))
-        result = stack.calculate().img
-        self.assertItemsEqual(result, np.ones((3, 3, 3), dtype=np.uint16))
+        self.assertItemsEqual(stack.stack.img, 3*np.ones((3, 3, 3),
+                                                         dtype=np.float))
+        stack.stack.img[1, 1, 1] = 13
+        stack.stack.img[2, 2, 1] = 23
+        stack.stack._scale(16)
+        result = stack.stack.img
+        self.assertTrue(result.min() == 0)
+        self.assertTrue(result[1, 1, 1] == 32767)
+        self.assertTrue(result.max() == 65535)
 
     def test_median_stack(self):
         stack = Stack('median', 3)
