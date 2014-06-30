@@ -37,7 +37,7 @@ class Stack(object):
                                 'max': {'update': self._update_max,
                                         'calc': None},
                                 'mean': {'update': self._update_mean,
-                                         'calc': self._calculate_mean},
+                                         'calc': None},
                                 # 'sigma': {'update': self._update_deep,
                                 #          'calc': self._calculate_sigma},
                                 'median': {'update': self._update_deep,
@@ -113,13 +113,6 @@ class Stack(object):
         self.stack['R'][:, :, self._num] = img[:, :, 0]
         self.stack['G'][:, :, self._num] = img[:, :, 1]
         self.stack['B'][:, :, self._num] = img[:, :, 2]
-
-    def _calculate_mean(self):
-        '''Calculate the average of the stack and return as
-        Image(dtype=uint16).
-        '''
-        self.stack /= self.num
-        return Image(img=self.stack.astype(np.uint16))
 
     def _calculate_median(self):
         '''Calculate the median of the stack and return the resulting
