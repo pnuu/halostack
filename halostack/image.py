@@ -138,9 +138,13 @@ class Image(object):
         '''
         self.img = to_numpy(self.img)
 
-    def save(self, fname):
+    def save(self, fname, bits=16, scale=True, adjustments=None):
         '''Save the image data.
         '''
+        if scale:
+            self._scale(bits)
+        if adjustments:
+            self._adjust(adjustments)
         self._to_imagemagick()
         self.img.write(fname)
 
@@ -169,9 +173,10 @@ class Image(object):
         else:
             return Image(img=self.img)
 
-    def process(self, funcs):
-        '''Process the image with the given function(s) and arguments.
+    def _adjust(self, funcs):
+        '''Adjust the image with the given function(s) and arguments.
         '''
+        self._to_imagemagick()
         functions = {'usm': self._usm,
                      'emboss': self._emboss,
                      'gamma': self._gamma,
@@ -216,6 +221,17 @@ class Image(object):
         grad.remove_gradient()
         self.img = self.img
 
+    def _scale(self, bits):
+        '''Scale image to cover the whole bit-range.
+        '''
+        self._to_numpy()
+        img = 1.0*self.img - np.min(self.img)
+        img = (2**bits - 1) * img / np.max(img)
+        if bits <= 8:
+            self.img = img.astype('uint8')
+        else:
+            self.img = img.astype('uint16')
+
     def _usm(self, radius, sigma, amount, threshold):
         '''Unsharp mask sharpen the image.
         '''
@@ -244,10 +260,7 @@ def to_numpy(img):
         blob = Blob()
         img.write(blob)
         data = blob.data
-        if img.depth() == 8:
-            out_img = np.fromstring(data, dtype='uint8')
-        else:
-            out_img = np.fromstring(data, dtype='uint16')
+        out_img = np.fromstring(data, dtype='uint'+str(img.depth()))
 
         height, width, chans = img.rows(), img.columns(), 3
         if img.monochrome():
@@ -262,10 +275,10 @@ def to_imagemagick(img):
     '''
     if not isinstance(img, PMImage):
         out_img = PMImage()
-        if img.dtype == 'uint16':
-            out_img.depth(16)
-        else:
+        if img.dtype == 'uint8':
             out_img.depth(8)
+        else:
+            out_img.depth(16)
         out_img.magick('RGB')
         shape = out_img.shape
         out_img.size(str(shape[1])+'x'+str(shape[0]))

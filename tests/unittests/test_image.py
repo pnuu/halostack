@@ -14,6 +14,14 @@ class TestImage(unittest.TestCase):
         rgb_arr[:, :, 1] += 1
         rgb_arr[:, :, 2] += 2
         self.img_rgb = Image(img=rgb_arr)
+        self.img_rand8 = Image(img=np.random.randint(2**8-1, size=(3, 3, 3)))
+        self.img_rand16 = Image(img=np.random.randint(2**16-1, size=(3, 3, 3)))
+        self.img_rand_big1 = Image(img=np.random.randint(30 * (2**16 - 1),
+                                                         size=(3, 3, 3)))
+        self.img_rand_big2 = Image(img=np.random.randint(30 * (2**16 - 1),
+                                                         size=(3, 3, 3)))
+        self.img_rand_neg = Image(img=np.random.randint(-100, 100,
+                                                         size=(3, 3, 3)))
 
     def test_add(self):
         result = self.img1 + self.img2
@@ -125,6 +133,30 @@ class TestImage(unittest.TestCase):
         correct_result[:, :, 0] = -1
         correct_result[:, :, 2] = 1
         self.assertItemsEqual(correct_result, img.img)
+
+    def test_scale_values(self):
+        self.img_rand8._scale(8)
+        self.assertTrue(self.img_rand8.img.dtype == 'uint8')
+        self.assertTrue(self.img_rand8.min() == 0)
+        self.assertTrue(self.img_rand8.max() == 255)
+
+        self.img_rand16._scale(16)
+        self.assertTrue(self.img_rand16.img.dtype == 'uint16')
+        self.assertTrue(self.img_rand16.min() == 0)
+        self.assertTrue(self.img_rand16.max() == 2**16-1)
+
+        self.img_rand_big1._scale(8)
+        self.assertTrue(self.img_rand_big1.img.dtype == 'uint8')
+        self.assertTrue(self.img_rand_big1.min() == 0)
+        self.assertTrue(self.img_rand_big1.max() == 255)
+
+        self.img_rand_big2._scale(16)
+        self.assertTrue(self.img_rand_big2.img.dtype == 'uint16')
+        self.assertTrue(self.img_rand_big2.min() == 0)
+        self.assertTrue(self.img_rand_big2.max() == 2**16-1)
+
+        self.img_rand_neg._scale(8)
+        self.assertTrue(self.img_rand_neg.min() >= 0)
 
     def assertItemsEqual(self, a, b):
         if isinstance(a, np.ndarray):
