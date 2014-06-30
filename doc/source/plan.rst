@@ -106,7 +106,7 @@ ___________________
 
   - gradient model
 
-    - gradient plane: ax^2 + by^2 + cx + dy + e
+    - gradient plane: ax^2 + by^2 + cxy + dx + ey + f
     - uniform reference point selection?
 
       - area exclusion mask?
