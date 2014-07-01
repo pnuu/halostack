@@ -53,12 +53,14 @@ Alignment prerequisites
   - manual
 
     - matplotlib
+    - GUI (not by me)
 
 - selection of area where focus point stays during the stack duration
 
   - manual
 
     - matplotlib
+    - GUI (not by me)
 
   - solar/lunar tracking based on date, time, location and idealized lens model
 
@@ -81,7 +83,8 @@ Image co-alignment
 
 - calculate shift
 
-  - reference correlation
+  - reference correlation --- **check**
+  - phase correlation?
   - solar/lunar tracking based on date, time, location and lens projection
 
 - shift image
@@ -95,30 +98,29 @@ ___________________
 
 - subtract bias?
 - flat correction?
+
   - would reduce the effect of dust
 
 - remove sky gradient
 
-  - blurred (with large radius) version of the image
+  - blurred (with large radius) version of the image --- **check**
 
     - simple, easy to implement
+    - kind of slow with pyimagemagick
+
+      - use convolution?
+
     - halos affect slightly the resulting background value
 
-  - gradient model
+  - gradient model --- **check**
 
-    - gradient plane: ax^2 + by^2 + cxy + dx + ey + f
-    - uniform reference point selection?
+    - gradient plane: ax^2 + by^2 + cxy + dx + ey + f --- **check**
 
-      - area exclusion mask?
-      - discard a point if too large difference compared to neighbours?
+      - better interpolation algorithm needed
 
-	- median filtering for reference points?
-	- would reduce the effect of halos
-
-    - user supplied reference points?
-
-      - from first image, use same locations for each image
-      - select points individually for each image
+    - uniform reference point selection --- **check**
+    - random reference point selectio --- **check**
+    - area exclusion mask?
 
 Calculate stacks
 ________________
@@ -126,7 +128,10 @@ ________________
 - average --- **check**
 - median --- **check**
 
-  - needs lots of RAM, or memmap'd HDF5 (only linux?)
+  - needs lots of RAM
+
+    - or memmap'd HDF5 (only linux?)
+
   - would be useful for making flat-field images
   - but not really needed?
 
@@ -135,20 +140,21 @@ ________________
 - sigma-average
 
   - really necessary?
-  - needs lots of RAM, or memmap'd HDF5 (only linux?)
+  - needs lots of RAM
+
+    - or memmap'd HDF5 (only linux?)
 
 Image postprocessing
 ____________________
 
-- remove gradients?
+- remove gradients --- **check**
 
   - should be done before stacking
-  - select points or use blur
+  - select points or use blur --- **check**
 
 - B-R --- **check**
 
-  - user supplied multiplier (default: 1.0) --- **check**
-  - select points to calculate optimal multiplier for R-channel
+  - automatic multiplier calculation --- **check**
   - http://opticsaround.blogspot.fr/2013/03/le-traitement-bleu-moins-rouge-blue.html
 
 - R, G, B = (R, G, B) - average(R, G, B) --- **check**
@@ -159,7 +165,7 @@ ____________________
 Image output
 -----------------
 
-- scale data to cover full range of the format
+- scale data to cover full range of the format --- **check**
 
   - mean
   - sigma-mean
