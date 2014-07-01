@@ -196,8 +196,8 @@ class Image(object):
                      'br': self._blue_red_subtract,
                      'rg': self._red_green_subtract,
                      'rgb_sub': self._rgb_subtract,
-                     'gradient': self._remove_gradient,
-                     }
+                     'gradient': self._remove_gradient}
+
         for key in adjustments:
             func = functions[key]
             self.img = func(*adjustments[key])
@@ -241,11 +241,10 @@ class Image(object):
         '''
         methods = {'blur': self._gradient_blur,
                    'random': self._gradient_random_points,
-                   'grid': self._gradient_grid_points
-#                   'user': self._gradient_get_user_points,
-#                   'mask': self._gradient_mask_points,
-#                   'all': self._gradient_all_points
-                   }
+                   'grid': self._gradient_grid_points}
+                   # 'user': self._gradient_get_user_points,
+                   # 'mask': self._gradient_mask_points,
+                   # 'all': self._gradient_all_points
 
         func = methods[method]
         result = func(*args)
