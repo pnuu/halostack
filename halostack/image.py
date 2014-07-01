@@ -156,6 +156,8 @@ class Image(object):
     def save(self, fname, bits=16, scale=True, adjustments=None):
         '''Save the image data.
         '''
+        if adjustments:
+            self.adjust(adjustments)
         if scale:
             self._scale(bits)
         self._to_imagemagick()
@@ -189,7 +191,6 @@ class Image(object):
     def adjust(self, adjustments):
         '''Adjust the image with the given function(s) and arguments.
         '''
-        self._to_imagemagick()
         functions = {'usm': self._usm,
                      'emboss': self._emboss,
                      'blur': self._blur,
@@ -241,11 +242,11 @@ class Image(object):
         self._to_numpy()
 
         # Use luminance
-        lumin = np.mean(img, 2)
+        lumin = np.mean(self.img, 2)
         lumin -= np.min(lumin)
         lumin = (2**args['bits']-1)*lumin/np.max(lumin)
 
-        hist, bins = np.histogram(lumin.flatten(), 2**args['bits']-1,
+        hist, _ = np.histogram(lumin.flatten(), 2**args['bits']-1,
                                   normed=True)
         cdf = hist.cumsum() #cumulative distribution function
         cdf = (2**args['bits']-1) * cdf / cdf[-1] #normalize
