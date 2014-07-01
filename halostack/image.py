@@ -247,7 +247,7 @@ class Image(object):
         lumin = (2**args['bits']-1)*lumin/np.max(lumin)
 
         hist, _ = np.histogram(lumin.flatten(), 2**args['bits']-1,
-                                  normed=True)
+                               normed=True)
         cdf = hist.cumsum() #cumulative distribution function
         cdf = (2**args['bits']-1) * cdf / cdf[-1] #normalize
 
