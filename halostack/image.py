@@ -25,6 +25,7 @@
 from PythonMagick import Image as PMImage
 from PythonMagick import Blob
 import numpy as np
+import itertools
 
 class Image(object):
     '''Image class'''
@@ -242,9 +243,9 @@ class Image(object):
         methods = {'blur': self._gradient_blur,
                    'random': self._gradient_random_points,
                    'grid': self._gradient_grid_points}
-                   # 'user': self._gradient_get_user_points,
-                   # 'mask': self._gradient_mask_points,
-                   # 'all': self._gradient_all_points
+        # 'user': self._gradient_get_user_points,
+        # 'mask': self._gradient_mask_points,
+        # 'all': self._gradient_all_points
 
         func = methods[method]
         result = func(*args)
