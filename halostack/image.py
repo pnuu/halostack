@@ -37,7 +37,7 @@ class Image(object):
         if fname is not None:
             self._read()
         if adjustments:
-            self._adjust(adjustments)
+            self.adjust(adjustments)
 
     def __add__(self, img):
         self._to_numpy()
@@ -197,46 +197,84 @@ class Image(object):
                      'br': self._blue_red_subtract,
                      'rg': self._red_green_subtract,
                      'rgb_sub': self._rgb_subtract,
-                     'gradient': self._remove_gradient}
+                     'gradient': self._remove_gradient,
+                     'stretch': self._stretch}
 
         for key in adjustments:
             func = functions[key]
-            self.img = func(*adjustments[key])
+            self.img = func(adjustments[key])
 
-    def _channel_difference(self, chan1, chan2, multiplier=1.0):
+    def _channel_difference(self, chan1, chan2, multiplier=None):
         '''Calculate channel difference: chan1 * multiplier - chan2.
         '''
         self._to_numpy()
-        self.img = multiplier * self.img[:, :, chan1] - self.img[:, :, chan2]
+        chan1 = self.img[:, :, chan1].copy()
+        chan2 = self.img[:, :, chan2].copy()
+        if multiplier is None:
+            idxs = np.logical_and(chan1 > 0, chan2 > 0)
+            multiplier = np.mean(chan1[idxs]/chan2[idxs])
+        self.img = multiplier * chan1 - chan2
 
-    def _blue_red_subtract(self, multiplier):
+    def _blue_red_subtract(self, args):
         '''Subtract red channel from the blue channel after scaling
         the blue channel using the supplied multiplier.
         '''
-        self._channel_difference(2, 0, multiplier=multiplier)
+        self._channel_difference(2, 0, multiplier=args['multiplier'])
 
-    def _red_green_subtract(self, multiplier):
+    def _red_green_subtract(self, args):
         '''Subtract green channel from the red channel after scaling
         the red channel using the supplied multiplier.
         '''
-        self._channel_difference(0, 1, multiplier=multiplier)
+        self._channel_difference(0, 1, multiplier=args['multiplier'])
 
     def _rgb_subtract(self):
         '''Subtract the mean(r,g,b) from all the channels.
         '''
         self._to_numpy()
-        self.img -= self.luminance().img
+        luminance = self.luminance().img
+        for i in range(3):
+            self.img[:, :, i] -= luminance
 
-    def _remove_gradient(self, method, *args):
+    def _stretch(self, args):
+        '''Apply a linear stretch to the image.
+        '''
+        self._to_numpy()
+
+        # Use luminance
+        lumin = np.mean(img, 2)
+        lumin -= np.min(lumin)
+        lumin = (2**args['bits']-1)*lumin/np.max(lumin)
+
+        hist, bins = np.histogram(lumin.flatten(), 2**args['bits']-1,
+                                  normed=True)
+        cdf = hist.cumsum() #cumulative distribution function
+        cdf = (2**args['bits']-1) * cdf / cdf[-1] #normalize
+
+        start = 0
+        csum = 0
+        while csum < (2**args['bits']-1)*args['low_cut']:
+            csum += cdf[start]
+            start += 1
+        end = 2**args['bits']-1
+        csum = 0
+        while csum < (2**args['bits']-1)*args['high_cut']:
+            csum += (cdf[-1]-cdf[end])
+            end -= 1
+
+        self.img -= start
+        self.img = (2**args['bits']-1)*self.img/(end-start)
+
+    def _remove_gradient(self, args):
         '''Calculate the gradient from the image, subtract from the
         original, scale back to full bit depth and return the result.
         '''
         self._to_numpy()
-        gradient = self._calculate_gradient(method, *args)
+        gradient = self._calculate_gradient(args)
+        self.img -= gradient
+        if self.img.img < 0:
+            self.img -= self.img.min()
 
-        self.img = self.img
-
-    def _calculate_gradient(self, method, order=2, *args):
+    def _calculate_gradient(self, args):
         '''Calculate gradient from the image using the given method.
         param method: name of the method for calculating the gradient
         '''
@@ -247,54 +285,53 @@ class Image(object):
         # 'mask': self._gradient_mask_points,
         # 'all': self._gradient_all_points
 
-        func = methods[method]
-        result = func(*args)
+        func = methods[args['method']]
+        result = func(args)
         shape = self.img.shape
 
-        if method is 'blur':
+        if args['method'] is 'blur':
             return result
 
         x_pts, y_pts = result
         if len(shape) == 2:
             return Image(img=self._gradient_fit_surface(x_pts, y_pts,
-                                                        order=order))
+                                                        order=args['order']))
         else:
             gradient = np.empty(shape)
             for i in range(shape[2]):
-                gradient[:, :, i] = self._gradient_fit_surface(x_pts, y_pts,
-                                                               order=order,
-                                                               chan=i)
+                gradient[:, :, i] = \
+                    self._gradient_fit_surface(x_pts, y_pts,
+                                               order=args['order'],
+                                               chan=i)
             return Image(img=gradient)
 
-    def _gradient_blur(self):
+    def _gradient_blur(self, args):
         '''Blur the image to get the approximation of the background
         gradient.
         '''
-        gradient = self.img + 0
-        gradient.adjust({'blur': 50})
+        gradient = self.img
+        gradient.adjust({'blur': {'radius': args['radius'],
+                                  'weight': args['weight']}})
         return gradient
 
-    def _gradient_random_points(self, *args):
+    def _gradient_random_points(self, args):
         '''Automatically extract background points for gradient estimation.
         '''
         shape = self.img.shape
-        y_pts = np.random.randint(shape[0], size=(args,))
-        x_pts = np.random.randint(shape[1], size=(args,))
+        y_pts = np.random.randint(shape[0], size=(args['points'],))
+        x_pts = np.random.randint(shape[1], size=(args['points'],))
 
         return (x_pts, y_pts)
 
-    def _gradient_grid_points(self, *args):
+    def _gradient_grid_points(self, args):
         '''Get uniform sampling of image locations.
         '''
         shape = self.img.shape
-        y_locs = np.arange(0, shape[0], args)
-        x_locs = np.arange(0, shape[1], args)
+        y_locs = np.arange(0, shape[0], args['points'])
+        x_locs = np.arange(0, shape[1], args['points'])
         x_mat, y_mat = np.meshgrid(x_locs, y_locs, indexing='ij')
 
-        y_pts = y_mat.ravel()
-        x_pts = x_mat.ravel()
-
-        return (x_pts, y_pts)
+        return (x_mat.ravel(), y_mat.ravel())
 
     def _gradient_fit_surface(self, x_pts, y_pts, order=2, chan=None):
         '''Fit a surface to the given channel.
@@ -302,52 +339,54 @@ class Image(object):
         shape = self.img.shape
         x_locs, y_locs = np.meshgrid(np.arange(shape[0]),
                                      np.arange(shape[1]))
-        if chan:
+        if chan is not None:
             poly = polyfit2d(x_pts, y_pts, self.img[y_pts, x_pts, chan].ravel(),
                              order=order)
             return polyval2d(x_locs, y_locs, poly)
         else:
             poly = polyfit2d(x_pts, y_pts, self.img[y_pts, x_pts].ravel(),
                              order=order)
-            return polyval2d(x_locs, y_locs, poly)
+            return polyval2d(x_locs, y_locs, poly).T
 
-    def _scale(self, bits):
+    def _scale(self, args):
         '''Scale image to cover the whole bit-range.
         '''
         self._to_numpy()
         img = 1.0*self.img - np.min(self.img)
         img_max = np.max(img)
         if img_max != 0:
-            img = (2**bits - 1) * img / img_max
-        if bits <= 8:
+            img = (2**args['bits'] - 1) * img / img_max
+        if args['bits'] <= 8:
             self.img = img.astype('uint8')
         else:
             self.img = img.astype('uint16')
 
-    def _usm(self, radius, sigma, amount, threshold):
+    def _usm(self, args):
         '''Unsharp mask sharpen the image.
         '''
         self._to_imagemagick()
-        self.img.unsharpmask(radius, sigma, amount, threshold)
+        self.img.unsharpmask(args['radius'], args['sigma'],
+                             args['amount'], args['threshold'])
 
-    def _emboss(self):
+    def _emboss(self, args):
         '''Emboss filter the image. Actually uses shade() from
         ImageMagick.
         '''
+        del args
         self._to_imagemagick()
         self.img.shade(90, 45)
 
-    def _blur(self, weight=50):
+    def _blur(self, args):
         '''Blur the image.
         '''
         self._to_imagemagick()
-        self.img.blur(0, weight)
+        self.img.blur(args['radius'], args['weight'])
 
-    def _gamma(self, gamma):
+    def _gamma(self, args):
         '''Apply gamma correction to the image.
         '''
         self._to_imagemagick()
-        self.img.gamma(gamma)
+        self.img.gamma(args['gamma'])
 
 def to_numpy(img):
     '''Convert the image data to numpy array.
