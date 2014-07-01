@@ -22,7 +22,6 @@
 
 '''Module for image I/O and conversions'''
 
-from halostack.gradients import Gradient
 from PythonMagick import Image as PMImage
 from PythonMagick import Blob
 import numpy as np
@@ -42,6 +41,7 @@ class Image(object):
     def __add__(self, img):
         self._to_numpy()
         if isinstance(img, Image):
+            img.to_numpy()
             return Image(img=self.img+img.img)
         else:
             # Assume a numpy array or scalar
@@ -53,6 +53,7 @@ class Image(object):
     def __sub__(self, img):
         self._to_numpy()
         if isinstance(img, Image):
+            img.to_numpy()
             return Image(img=self.img-img.img)
         else:
             # Assume a numpy array or scalar
@@ -67,6 +68,7 @@ class Image(object):
     def __mul__(self, img):
         self._to_numpy()
         if isinstance(img, Image):
+            img.to_numpy()
             return Image(img=self.img*img.img)
         else:
             # Assume a numpy array or scalar
@@ -78,6 +80,7 @@ class Image(object):
     def __div__(self, img):
         self._to_numpy()
         if isinstance(img, Image):
+            img.to_numpy()
             return Image(img=self.img/img.img)
         else:
             # Assume a numpy array or scalar
@@ -96,24 +99,28 @@ class Image(object):
     def __le__(self, img):
         self._to_numpy()
         if isinstance(img, Image):
+            img.to_numpy()
             img = img.img
         return self.img <= img
 
     def __gt__(self, img):
         self._to_numpy()
         if isinstance(img, Image):
+            img.to_numpy()
             img = img.img
         return self.img > img
 
     def __ge__(self, img):
         self._to_numpy()
         if isinstance(img, Image):
+            img.to_numpy()
             img = img.img
         return self.img >= img
 
     def __eq__(self, img):
         self._to_numpy()
         if isinstance(img, Image):
+            img.to_numpy()
             img = img.img
         return self.img == img
 
@@ -130,6 +137,11 @@ class Image(object):
         '''
         self.img = PMImage(self.fname)
 
+    def to_numpy(self):
+        '''Convert from PMImage to numpy.
+        '''
+        self._to_numpy()
+
     def _to_numpy(self):
         '''Convert from PMImage to numpy.
         '''
@@ -145,8 +157,6 @@ class Image(object):
         '''
         if scale:
             self._scale(bits)
-        if adjustments:
-            self._adjust(adjustments)
         self._to_imagemagick()
         self.img.write(fname)
 
@@ -175,17 +185,18 @@ class Image(object):
         else:
             return Image(img=self.img)
 
-    def _adjust(self, adjustments):
+    def adjust(self, adjustments):
         '''Adjust the image with the given function(s) and arguments.
         '''
         self._to_imagemagick()
         functions = {'usm': self._usm,
                      'emboss': self._emboss,
+                     'blur': self._blur,
                      'gamma': self._gamma,
                      'br': self._blue_red_subtract,
                      'rg': self._red_green_subtract,
                      'rgb_sub': self._rgb_subtract,
-                     'gradient': self._gradient
+                     'gradient': self._remove_gradient,
                      }
         for key in adjustments:
             func = functions[key]
@@ -215,13 +226,90 @@ class Image(object):
         self._to_numpy()
         self.img -= self.luminance().img
 
-    def _gradient(self):
-        '''Remove the background gradient.
+    def _remove_gradient(self, method, *args):
+        '''Calculate the gradient from the image, subtract from the
+        original, scale back to full bit depth and return the result.
         '''
         self._to_numpy()
-#        grad = Gradient(self.img, method, *args)
-#        grad.remove_gradient()
+        gradient = self._calculate_gradient(method, *args)
+
         self.img = self.img
+
+    def _calculate_gradient(self, method, order=2, *args):
+        '''Calculate gradient from the image using the given method.
+        param method: name of the method for calculating the gradient
+        '''
+        methods = {'blur': self._gradient_blur,
+                   'random': self._gradient_random_points,
+                   'grid': self._gradient_grid_points
+#                   'user': self._gradient_get_user_points,
+#                   'mask': self._gradient_mask_points,
+#                   'all': self._gradient_all_points
+                   }
+
+        func = methods[method]
+        result = func(*args)
+        shape = self.img.shape
+
+        if method is 'blur':
+            return result
+
+        x_pts, y_pts = result
+        if len(shape) == 2:
+            return Image(img=self._gradient_fit_surface(x_pts, y_pts,
+                                                        order=order))
+        else:
+            gradient = np.empty(shape)
+            for i in range(shape[2]):
+                gradient[:, :, i] = self._gradient_fit_surface(x_pts, y_pts,
+                                                               order=order,
+                                                               chan=i)
+            return Image(img=gradient)
+
+    def _gradient_blur(self):
+        '''Blur the image to get the approximation of the background
+        gradient.
+        '''
+        gradient = self.img + 0
+        gradient.adjust({'blur': 50})
+        return gradient
+
+    def _gradient_random_points(self, *args):
+        '''Automatically extract background points for gradient estimation.
+        '''
+        shape = self.img.shape
+        y_pts = np.random.randint(shape[0], size=(args,))
+        x_pts = np.random.randint(shape[1], size=(args,))
+
+        return (x_pts, y_pts)
+
+    def _gradient_grid_points(self, *args):
+        '''Get uniform sampling of image locations.
+        '''
+        shape = self.img.shape
+        y_locs = np.arange(0, shape[0], args)
+        x_locs = np.arange(0, shape[1], args)
+        x_mat, y_mat = np.meshgrid(x_locs, y_locs, indexing='ij')
+
+        y_pts = y_mat.ravel()
+        x_pts = x_mat.ravel()
+
+        return (x_pts, y_pts)
+
+    def _gradient_fit_surface(self, x_pts, y_pts, order=2, chan=None):
+        '''Fit a surface to the given channel.
+        '''
+        shape = self.img.shape
+        x_locs, y_locs = np.meshgrid(np.arange(shape[0]),
+                                     np.arange(shape[1]))
+        if chan:
+            poly = polyfit2d(x_pts, y_pts, self.img[y_pts, x_pts, chan].ravel(),
+                             order=order)
+            return polyval2d(x_locs, y_locs, poly)
+        else:
+            poly = polyfit2d(x_pts, y_pts, self.img[y_pts, x_pts].ravel(),
+                             order=order)
+            return polyval2d(x_locs, y_locs, poly)
 
     def _scale(self, bits):
         '''Scale image to cover the whole bit-range.
@@ -247,7 +335,13 @@ class Image(object):
         ImageMagick.
         '''
         self._to_imagemagick()
-        self.img.emboss(90, 45)
+        self.img.shade(90, 45)
+
+    def _blur(self, weight=50):
+        '''Blur the image.
+        '''
+        self._to_imagemagick()
+        self.img.blur(0, weight)
 
     def _gamma(self, gamma):
         '''Apply gamma correction to the image.
@@ -284,12 +378,37 @@ def to_imagemagick(img):
         else:
             out_img.depth(16)
         out_img.magick('RGB')
-        shape = out_img.shape
+        shape = img.shape
         out_img.size(str(shape[1])+'x'+str(shape[0]))
         blob = Blob()
-        blob.data = img.tosting()
+        blob.data = img.tostring()
         out_img.read(blob)
         out_img.magick('PNG')
 
         return out_img
     return img
+
+def polyfit2d(x_loc, y_loc, z_val, order=2):
+    '''Fit a 2-D polynomial to the given data.
+
+    Implementation from: http://stackoverflow.com/a/7997925
+    '''
+    ncols = (order + 1)**2
+    g_mat = np.zeros((x_loc.size, ncols))
+    ij_loc = itertools.product(range(order+1), range(order+1))
+    for k, (i, j) in enumerate(ij_loc):
+        g_mat[:, k] = x_loc**i * y_loc**j
+    poly, _, _, _ = np.linalg.lstsq(g_mat, z_val)
+    return poly
+
+def polyval2d(x_loc, y_loc, poly):
+    '''Evaluate 2-D polynomial *poly* at the given locations
+
+    Implementation from: http://stackoverflow.com/a/7997925
+    '''
+    order = int(np.sqrt(len(poly))) - 1
+    ij_loc = itertools.product(range(order+1), range(order+1))
+    surf = np.zeros_like(x_loc)
+    for arr, (i, j) in zip(poly, ij_loc):
+        surf += arr * x_loc**i * y_loc**j
+    return surf
