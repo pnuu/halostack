@@ -383,6 +383,21 @@ class Image(object):
         self._to_imagemagick()
         self.img.blur(args['radius'], args['weight'])
 
+    def _blur2(self, args):
+        '''Blur the image using 1D convolution twice.
+        '''
+        shape = self.img.shape
+        kernel = np.ones(2*args['radius'])/(2*args['radius'])
+        x_1, x_2 = args['radius'], shape[1] + args['radius']
+        y_1, y_2 = args['radius'], shape[0] + args['radius']
+        for i in range(shape[-1]):
+            vect = self.img[:, :, i].ravel()
+            vect_conv = np.convolve(vect, kernel, mode='same')
+            vect = vect_conv.reshape(shape[:2]).T.ravel()
+            vect_conv = np.convolve(vect, kernel, mode='same')
+            self.img[:, :, i] = vect_conv.reshape((shape[1],
+                                                   shape[0])).T
+
     def _gamma(self, args):
         '''Apply gamma correction to the image.
         '''
