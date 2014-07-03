@@ -53,7 +53,7 @@ class Stack(object):
         if not isinstance(img, Image):
             img = Image(img=img)
 
-        self._update_stack(image.to_numpy(img))
+        self._update_stack(img)
 
     def calculate(self):
         '''Calculate the result image and return Image object.
@@ -77,25 +77,33 @@ class Stack(object):
             self.stack += img
 
     def _update_min(self, img):
-        '''Update minimum stack.
+        '''Update minimum stack. Minimum values are selected using
+        luminance.
         '''
         if self.stack is None:
             self.stack = img
         else:
-            idxs = np.where(self.stack > img)
-            if np.any(idxs):
-                self.stack.img[idxs] = img[idxs]
+            lum_stack = self.stack.luminance()
+            lum_img = img.luminance()
+            idxs_y, idxs_x = np.where(lum_stack > lum_img)
+            if np.any(idxs_x):
+                for i in range(img.img.shape[-1]):
+                    self.stack.img[idxs_y, idxs_x, i] = img[idxs_y, idxs_x, i]
 
     def _update_max(self, img):
-        '''Update maximum stack.
+        '''Update maximum stack. Maximum values are selected using
+        luminance.
         '''
 
         if self.stack is None:
             self.stack = img
         else:
-            idxs = np.where(self.stack < img)
-            if np.any(idxs):
-                self.stack[idxs] = img[idxs]
+            lum_stack = self.stack.luminance()
+            lum_img = img.luminance()
+            idxs_y, idxs_x = np.where(lum_stack < lum_img)
+            if np.any(idxs_x):
+                for i in range(img.img.shape[-1]):
+                    self.stack[idxs_y, idxs_x, i] = img[idxs_y, idxs_x, i]
 
     def _update_deep(self, img):
         '''Update deep (median or sigma-reject average) stack.
