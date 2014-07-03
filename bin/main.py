@@ -85,7 +85,7 @@ def main():
                         help="Stack without alignment")
     parser.add_argument("-e", "--enhance-images", dest="enhance_images",
                         default="", type=str, nargs='+',
-                        help="Enhancement function to apply to each stack")
+                        help="Enhancement functions applied to each image")
     parser.add_argument("-E", "--enhance-stacks", dest="enhance_stacks",
                         default="", type=str, nargs='+',
                         help="Enhancement function to apply to each stack")
