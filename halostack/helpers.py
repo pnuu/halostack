@@ -24,6 +24,8 @@
 
 import logging
 from glob import glob
+import matplotlib.pyplot as plt
+import numpy as np
 
 LOGGER = logging.getLogger(__name__)
 
@@ -46,3 +48,62 @@ def get_filenames(fnames):
             LOGGER.info("Added %s to the image list", fname)
 
     return fnames_out
+
+def parse_enhancements(params):
+    '''Parse image enhancements and their parameters, if any.
+    '''
+    output = {}
+
+    for param in params:
+        param = param.split(":")
+        if len(param) > 1:
+            name, args = param
+            args = args.split(',')
+            arg_list = []
+            for arg in args:
+                try:
+                    arg = float(arg)
+                except ValueError:
+                    pass
+                arg_list.append(arg)
+                
+            output[name] = arg_list
+        else:
+            output[param[0]] = None
+
+    return output
+
+def get_two_points(img_in):
+    '''Get two image pixel coordinates from users' clicks on the
+    image, and return them as 3-tuple:
+    (mean(xs), mean(ys), min(abs_diff(xs), abs_diff(ys)).
+    '''
+    x_cs, y_cs = get_image_coordinates(img_in, 2)
+
+    return (int(np.ceil(np.mean(x_cs))),
+            int(np.ceil(np.mean(y_cs))),
+            int(np.ceil(np.min([np.abs(x_cs[0]-x_cs[1]),
+                               np.abs(y_cs[0]-y_cs[1])]))))
+
+def get_image_coordinates(img_in, num):
+    '''Get *num* image coordinates from users' clicks on the image.
+    '''
+    img = img_in.img.copy()
+    if img.dtype != 'uint8':
+        img -= np.min(img)
+        img = 255*img/np.max(img)
+        img = img.astype(np.uint8)
+
+    fig = plt.figure()
+    plt.imshow(img)
+    fig.tight_layout()
+    points = plt.ginput(num, show_clicks=True, timeout=0)
+    plt.close()
+
+    x_cs, y_cs = [], []
+    for pnt in points:
+        x_c, y_c = pnt
+        x_cs.append(int(x_c))
+        y_cs.append(int(y_c))
+
+    return x_cs, y_cs
