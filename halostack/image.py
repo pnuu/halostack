@@ -30,17 +30,17 @@ import itertools
 class Image(object):
     '''Image class'''
 
-    def __init__(self, img=None, fname=None, adjustments=None):
+    def __init__(self, img=None, fname=None, enhancements=None):
         self.img = img
         self.fname = fname
 
         if fname is not None:
             self._read()
-        if adjustments:
-            self.adjust(adjustments)
+        if enhancements:
+            self.enhance(enhancements)
+        self._to_numpy()
 
     def __add__(self, img):
-        self._to_numpy()
         if isinstance(img, Image):
             img.to_numpy()
             return Image(img=self.img+img.img)
@@ -52,7 +52,6 @@ class Image(object):
         return self.__add__(img)
 
     def __sub__(self, img):
-        self._to_numpy()
         if isinstance(img, Image):
             img.to_numpy()
             return Image(img=self.img-img.img)
@@ -61,13 +60,12 @@ class Image(object):
             return Image(img=self.img-img)
 
     def __rsub__(self, img):
-        return self.__add__(img)
+        return self.__sub__(img)
 
     def __isub__(self, img):
         self.img = self.__sub__(img)
 
     def __mul__(self, img):
-        self._to_numpy()
         if isinstance(img, Image):
             img.to_numpy()
             return Image(img=self.img*img.img)
@@ -79,7 +77,6 @@ class Image(object):
         return self.__mul__(img)
 
     def __div__(self, img):
-        self._to_numpy()
         if isinstance(img, Image):
             img.to_numpy()
             return Image(img=self.img/img.img)
@@ -92,34 +89,30 @@ class Image(object):
         return Image(img=np.abs(self.img))
 
     def __lt__(self, img):
-        self._to_numpy()
         if isinstance(img, Image):
+            img.to_numpy()
             img = img.img
         return self.img < img
 
     def __le__(self, img):
-        self._to_numpy()
         if isinstance(img, Image):
             img.to_numpy()
             img = img.img
         return self.img <= img
 
     def __gt__(self, img):
-        self._to_numpy()
         if isinstance(img, Image):
             img.to_numpy()
             img = img.img
         return self.img > img
 
     def __ge__(self, img):
-        self._to_numpy()
         if isinstance(img, Image):
             img.to_numpy()
             img = img.img
         return self.img >= img
 
     def __eq__(self, img):
-        self._to_numpy()
         if isinstance(img, Image):
             img.to_numpy()
             img = img.img
@@ -153,11 +146,11 @@ class Image(object):
         '''
         self.img = to_numpy(self.img)
 
-    def save(self, fname, bits=16, scale=True, adjustments=None):
+    def save(self, fname, bits=16, scale=True, enhancements=None):
         '''Save the image data.
         '''
-        if adjustments:
-            self.adjust(adjustments)
+        if enhancements:
+            self.enhance(enhancements)
         if scale:
             self._scale(bits)
         self._to_imagemagick()
@@ -188,12 +181,12 @@ class Image(object):
         else:
             return Image(img=self.img)
 
-    def adjust(self, adjustments):
-        '''Adjust the image with the given function(s) and arguments.
+    def enhance(self, enhancements):
+        '''Enhance the image with the given function(s) and argument(s).
         '''
         functions = {'usm': self._usm,
                      'emboss': self._emboss,
-                     'blur': self._blur,
+                     'blur': self._blur2,
                      'gamma': self._gamma,
                      'br': self._blue_red_subtract,
                      'rg': self._red_green_subtract,
@@ -201,9 +194,9 @@ class Image(object):
                      'gradient': self._remove_gradient,
                      'stretch': self._stretch}
 
-        for key in adjustments:
+        for key in enhancements:
             func = functions[key]
-            self.img = func(adjustments[key])
+            func(enhancements[key])
 
     def _channel_difference(self, chan1, chan2, multiplier=None):
         '''Calculate channel difference: chan1 * multiplier - chan2.
@@ -270,9 +263,14 @@ class Image(object):
         original, scale back to full bit depth and return the result.
         '''
         self._to_numpy()
+        self.img = self.img.astype(np.float)
+        args = {'method': {'blur': {'radius': args[0]}}}
         gradient = self._calculate_gradient(args)
-        self.img -= gradient
-        if self.img.img < 0:
+        print "tyypit", self.img.dtype, gradient.img.dtype
+        self.img -= gradient.img
+        print np.max(self.img)
+
+        if self.img.min() < 0:
             self.img -= self.img.min()
 
     def _calculate_gradient(self, args):
@@ -286,11 +284,16 @@ class Image(object):
         # 'mask': self._gradient_mask_points,
         # 'all': self._gradient_all_points
 
-        func = methods[args['method']]
-        result = func(args)
+        try:
+            func = methods[args['method'].keys()[0]]
+        except TypeError:
+            args = {}
+            args['method'] = {'blur': None}
+            func = methods['blur']
+        result = func(args['method'])
         shape = self.img.shape
 
-        if args['method'] is 'blur':
+        if args['method'].keys()[0] is 'blur':
             return result
 
         x_pts, y_pts = result
@@ -310,9 +313,9 @@ class Image(object):
         '''Blur the image to get the approximation of the background
         gradient.
         '''
-        gradient = self.img
-        gradient.adjust({'blur': {'radius': args['radius'],
-                                  'weight': args['weight']}})
+        gradient = Image(img=self.img.copy())
+        gradient.enhance(args)
+
         return gradient
 
     def _gradient_random_points(self, args):
@@ -362,6 +365,12 @@ class Image(object):
         else:
             self.img = img.astype('uint16')
 
+    def _rotate(self, args):
+        '''Rotate image.
+        '''
+        # use scipy.ndimage.interpolation.rotate()
+        pass
+
     def _usm(self, args):
         '''Unsharp mask sharpen the image.
         '''
@@ -384,19 +393,30 @@ class Image(object):
         self.img.blur(args['radius'], args['weight'])
 
     def _blur2(self, args):
-        '''Blur the image using 1D convolution twice.
+        '''Blur the image using 1D convolution for each column and
+        row. Data borders are padded with mean of the data before
+        convolution to reduce the edge effects.
         '''
         shape = self.img.shape
-        kernel = np.ones(2*args['radius'])/(2*args['radius'])
-        x_1, x_2 = args['radius'], shape[1] + args['radius']
-        y_1, y_2 = args['radius'], shape[0] + args['radius']
+        radius = args['radius']
+        kernel = np.ones(2*radius)/(2*radius)
         for i in range(shape[-1]):
-            vect = self.img[:, :, i].ravel()
-            vect_conv = np.convolve(vect, kernel, mode='same')
-            vect = vect_conv.reshape(shape[:2]).T.ravel()
-            vect_conv = np.convolve(vect, kernel, mode='same')
-            self.img[:, :, i] = vect_conv.reshape((shape[1],
-                                                   shape[0])).T
+            # rows
+            for j in range(shape[0]):
+                vect = np.mean(self.img[j, :, i]) + \
+                    np.zeros(2*radius+shape[1]-1)
+                vect[radius:radius+shape[1]] = self.img[j, :, i]
+                vect_conv = np.convolve(vect, kernel, mode='full')
+                self.img[j, :, i] = vect_conv[2*radius:2*radius+shape[1]]
+            # columns
+            for j in range(shape[1]):
+                vect = np.mean(self.img[:, j, i]) +\
+                    np.zeros(2*radius+shape[1]-1)
+                vect[radius:radius+shape[0]] = self.img[:, j, i]
+                vect_conv = np.convolve(vect, kernel, mode='full')
+                self.img[:, j, i] = vect_conv[2*radius:2*radius+shape[0]]
+
+        self.img -= np.min(self.img)
 
     def _gamma(self, args):
         '''Apply gamma correction to the image.
