@@ -41,22 +41,22 @@ class Align(object):
             self.align_func = self._simple_match
 
         if ref_loc is not None:
-            self.ref = img[ref_loc[0]-ref_loc[2]:ref_loc[0]+ref_loc[2]+1,
-                           ref_loc[1]-ref_loc[2]:ref_loc[1]+ref_loc[2]+1]
+            self._set_ref()
         if srch_area is None:
             y_size, x_size = self.img.shape
             self.srch_area = [0, 0, y_size, x_size]
 
-    def set_reference(self):
-        '''Let the user select the reference area.
+    def set_reference(self, area):
+        '''Set the reference area *area*.
+        param area: 3-tuple of the form (x, y, radius)
         '''
-        # self.ref_loc
-        pass
+        self.ref_loc = area
 
-    def set_reference_area(self):
-        '''Let the user select the reference search area
+    def set_search_area(self, area):
+        '''Set the reference search area *area*.
+        param area: 4-tuple of the form (x1, x2, y1, y2)
         '''
-        pass
+        self.srch_area = area
 
     def align(self, img):
         '''Align the given image with the reference image.
@@ -67,6 +67,14 @@ class Align(object):
         # Shift the image
 
         return img
+
+    def _set_ref(self):
+        '''Set reference values.
+        '''
+        self.ref = self.img[self.ref_loc[0]-self.ref_loc[2]:\
+                                self.ref_loc[0]+self.ref_loc[2]+1,
+                            self.ref_loc[1]-self.ref_loc[2]:\
+                                self.ref_loc[1]+self.ref_loc[2]+1]
 
     def _find_reference(self, img):
         '''Find the reference area from the given image.
