@@ -1,6 +1,6 @@
 import unittest
 import os
-from halostack.helpers import get_filenames
+from halostack.helpers import get_filenames, parse_enhancements
 
 class TestHelpers(unittest.TestCase):
     
@@ -8,6 +8,8 @@ class TestHelpers(unittest.TestCase):
         self.fnames = ['tests/data/1.jpg', 'tests/data/2.jpg']
         self.fnames2 = [os.path.join('tests', 'data', '*.jpg')]
         self.fnames3 = ['tests/data/1.jpg', 'tests/data/a*.jpg']
+        self.enh1 = ['br', 'gradient']
+        self.enh2 = ['usm:25,5', 'gradient']
 
     def test_get_filenames(self):
         result = get_filenames(self.fnames)
@@ -29,12 +31,25 @@ class TestHelpers(unittest.TestCase):
         correct_result.sort()
         self.assertItemsEqual(result, correct_result)
 
+    def test_parse_enhancements(self):
+        result = parse_enhancements(self.enh1)
+        self.assertDictEqual(result, {'br': None, 'gradient': None})
+        result = parse_enhancements(self.enh2)
+        self.assertDictEqual(result, {'usm': [25., 5.], 'gradient': None})
+
     def assertItemsEqual(self, a, b):
         for i in range(len(a)):
             if isinstance(a[i], dict):
                 self.assertDictEqual(a[i], b[i])
             else:
                 self.assertEqual(a[i], b[i])
+        self.assertEqual(len(a), len(b))
+
+    def assertDictEqual(self, a, b):
+        for key in a:
+            self.assertTrue(key in b)
+            self.assertEqual(a[key], b[key])
+
         self.assertEqual(len(a), len(b))
 
 
