@@ -5,8 +5,68 @@ The Plan
 Command-line parsing
 --------------------
 
-- keep simple
-- only most-used switches
+``./halostack.py [options] <list of filenames>``
+
+- -a, --average-stack --- *Output filename of the average stack*
+
+  ``-a average_stack.png``
+
+- -m, --min-stack --- *Output filename of the minimum stack*
+
+  ``-m minimum_stack.png``
+
+- -M, --max-stack --- *Output filename of the maximum stack*
+
+  ``-M maximum_stack.png``
+
+- -d, --median-stack --- *Output filename of the median stack*
+
+  ``-d median_stack.png``
+
+- -t, --correlation-threshold --- *Minimum required correlation [0.7]*
+
+  ``-t 0.9``
+
+- -s, --save-images --- *Save aligned images as PNG with the given filename postfix*
+
+  ``-s aligned_images_``
+
+  - this will save the images with filenames like *aligned_images_IMG_0001.png* etc.
+
+- -n, --no-alignment --- *Stack without alignment*
+
+  ``-n``
+
+  - no arguments
+
+- -e, --enhance-images --- *Enhancement functions applied to each input image*
+
+  ``-e gradient:20``
+
+- -E, --enhance-stacks --- *Enhancement functions applied to each stack*
+
+  ``-E usm:25,2 gradient:20``
+
+.. - -g, --view-gamma <num> --- *Adjust image gamma for alignment preview*
+.. 
+..  ``-g 1.5``
+
+- -c, --config --- *Use config file <file>*
+
+  ``-c config.ini``
+
+- -C, --cli --- *Start CLI*
+
+  ``-c``
+
+  - no arguments
+  - GUI not implemented, so this is default for now
+
+- *<list of filenames>*
+
+  ``*.jpg``
+  ``*.*``
+  ``IMG_0001.jpg, IMG_0002.jpg IMG_0003.jpg``
 
 Config file usage
 -----------------
@@ -105,18 +165,20 @@ ___________________
 
   - blurred (with large radius) version of the image --- **check**
 
-    - simple, easy to implement
-    - kind of slow with pyimagemagick
+    - pyimagemagick --- **check**
 
-      - use convolution?
+      - slow
 
-    - halos affect slightly the resulting background value
+    - convolution --- **check**
+
+      - much faster
+      - better results than with pyimagemagick
 
   - gradient model --- **check**
 
     - gradient plane: ax^2 + by^2 + cxy + dx + ey + f --- **check**
 
-      - better interpolation algorithm needed
+      - better fitting/evaluation algorithms needed
 
     - uniform reference point selection --- **check**
     - random reference point selectio --- **check**
