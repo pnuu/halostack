@@ -112,19 +112,21 @@ Alignment prerequisites
 
   - manual
 
-    - matplotlib
+    - matplotlib --- **check**
     - GUI (not by me)
 
 - selection of area where focus point stays during the stack duration
 
   - manual
 
-    - matplotlib
+    - matplotlib --- **check**
     - GUI (not by me)
 
   - solar/lunar tracking based on date, time, location and idealized lens model
 
     - get reference locations from the first and last images
+
+      - needs centroid calculations
 
 Image co-alignment
 ------------------
