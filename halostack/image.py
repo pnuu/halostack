@@ -144,7 +144,7 @@ class Image(object):
     def _to_imagemagick(self):
         '''Convert from numpy to PMImage.
         '''
-        self.img = to_numpy(self.img)
+        self.img = to_imagemagick(self.img)
 
     def save(self, fname, bits=16, scale=True, enhancements=None):
         '''Save the image data.
@@ -213,50 +213,57 @@ class Image(object):
         '''Subtract red channel from the blue channel after scaling
         the blue channel using the supplied multiplier.
         '''
-        self._channel_difference(2, 0, multiplier=args['multiplier'])
+        self._channel_difference(2, 0, multiplier=args)
 
     def _red_green_subtract(self, args):
         '''Subtract green channel from the red channel after scaling
         the red channel using the supplied multiplier.
         '''
-        self._channel_difference(0, 1, multiplier=args['multiplier'])
+        self._channel_difference(0, 1, multiplier=args)
 
-    def _rgb_subtract(self):
+    def _rgb_subtract(self, args):
         '''Subtract the mean(r,g,b) from all the channels.
         '''
+        del args
         self._to_numpy()
+        self.img = self.img.astype(np.float)
         luminance = self.luminance().img
         for i in range(3):
             self.img[:, :, i] -= luminance
+        self.img -= self.img.min()
 
     def _stretch(self, args):
         '''Apply a linear stretch to the image.
         '''
         self._to_numpy()
-
+        # args = [bits, low_cut, high_cut]
+        if len(args) == 1:
+            args.append(0.05)
+        if len(args) == 2:
+            args.append(0.05)
         # Use luminance
         lumin = np.mean(self.img, 2)
         lumin -= np.min(lumin)
-        lumin = (2**args['bits']-1)*lumin/np.max(lumin)
+        lumin = (2**args[0]-1)*lumin/np.max(lumin)
 
-        hist, _ = np.histogram(lumin.flatten(), 2**args['bits']-1,
+        hist, _ = np.histogram(lumin.flatten(), 2**args[0]-1,
                                normed=True)
         cdf = hist.cumsum() #cumulative distribution function
-        cdf = (2**args['bits']-1) * cdf / cdf[-1] #normalize
+        cdf = (2**args[0]-1) * cdf / cdf[-1] #normalize
 
         start = 0
         csum = 0
-        while csum < (2**args['bits']-1)*args['low_cut']:
+        while csum < (2**args[0]-1)*args[1]:
             csum += cdf[start]
             start += 1
-        end = 2**args['bits']-1
+        end = 2**args[0]-1
         csum = 0
-        while csum < (2**args['bits']-1)*args['high_cut']:
+        while csum < (2**args[0]-1)*args[2]:
             csum += (cdf[-1]-cdf[end])
             end -= 1
 
         self.img -= start
-        self.img = (2**args['bits']-1)*self.img/(end-start)
+        self.img = (2**args[0]-1)*self.img/(end-start)
 
     def _remove_gradient(self, args):
         '''Calculate the gradient from the image, subtract from the
@@ -264,9 +271,8 @@ class Image(object):
         '''
         self._to_numpy()
         self.img = self.img.astype(np.float)
-        args = {'method': {'blur': {'radius': args[0]}}}
+        args = {'method': {'blur': args}}
         gradient = self._calculate_gradient(args)
-        print "tyypit", self.img.dtype, gradient.img.dtype
         self.img -= gradient.img
         print np.max(self.img)
 
@@ -290,6 +296,7 @@ class Image(object):
             args = {}
             args['method'] = {'blur': None}
             func = methods['blur']
+        print args
         result = func(args['method'])
         shape = self.img.shape
 
@@ -352,20 +359,20 @@ class Image(object):
                              order=order)
             return polyval2d(x_locs, y_locs, poly).T
 
-    def _scale(self, args):
+    def _scale(self, *args):
         '''Scale image to cover the whole bit-range.
         '''
         self._to_numpy()
         img = 1.0*self.img - np.min(self.img)
         img_max = np.max(img)
         if img_max != 0:
-            img = (2**args['bits'] - 1) * img / img_max
-        if args['bits'] <= 8:
+            img = (2**args[0] - 1) * img / img_max
+        if args[0] <= 8:
             self.img = img.astype('uint8')
         else:
             self.img = img.astype('uint16')
 
-    def _rotate(self, args):
+    def _rotate(self, *args):
         '''Rotate image.
         '''
         # use scipy.ndimage.interpolation.rotate()
@@ -375,22 +382,31 @@ class Image(object):
         '''Unsharp mask sharpen the image.
         '''
         self._to_imagemagick()
-        self.img.unsharpmask(args['radius'], args['sigma'],
-                             args['amount'], args['threshold'])
+        if len(args) == 2:
+            args.append(np.sqrt(args[0]))
+        if len(args) == 3:
+            args.append(0)
+        self.img.unsharpmask(*args)
 
     def _emboss(self, args):
         '''Emboss filter the image. Actually uses shade() from
         ImageMagick.
         '''
-        del args
+        if args is None:
+            args = []
+        if len(args) == 0:
+            args.append(90)
+        if len(args) == 1:
+            args.append(45)
         self._to_imagemagick()
-        self.img.shade(90, 45)
+        self.img.shade(*args)
 
     def _blur(self, args):
         '''Blur the image.
         '''
         self._to_imagemagick()
-        self.img.blur(args['radius'], args['weight'])
+        # args['radius'], args['weight'])
+        self.img.blur(*args)
 
     def _blur2(self, args):
         '''Blur the image using 1D convolution for each column and
@@ -398,7 +414,12 @@ class Image(object):
         convolution to reduce the edge effects.
         '''
         shape = self.img.shape
-        radius = args['radius']
+        if args is None:
+            radius = int(np.min(shape[:2])/20.)
+        else:
+            radius = args[0] # args['radius']
+
+        print radius
         kernel = np.ones(2*radius)/(2*radius)
         for i in range(shape[-1]):
             # rows
@@ -422,12 +443,11 @@ class Image(object):
         '''Apply gamma correction to the image.
         '''
         self._to_imagemagick()
-        self.img.gamma(args['gamma'])
+        self.img.gamma(args[0])
 
 def to_numpy(img):
     '''Convert the image data to numpy array.
     '''
-
     if not isinstance(img, np.ndarray):
         img.magick('RGB')
         blob = Blob()
