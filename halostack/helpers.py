@@ -95,7 +95,7 @@ def get_image_coordinates(img_in, num):
         img = img.astype(np.uint8)
 
     fig = plt.figure()
-    plt.imshow(img)
+    plt.imshow(img, cmap='gray')
     fig.tight_layout()
     points = plt.ginput(num, show_clicks=True, timeout=0)
     plt.close()
