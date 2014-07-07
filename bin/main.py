@@ -84,10 +84,10 @@ def main():
                         default=False, action="store_true",
                         help="Stack without alignment")
     parser.add_argument("-e", "--enhance-images", dest="enhance_images",
-                        default="", type=str, nargs='+',
+                        default=[], type=str, action="append",
                         help="Enhancement functions applied to each image")
     parser.add_argument("-E", "--enhance-stacks", dest="enhance_stacks",
-                        default="", type=str, nargs='+',
+                        default=[], type=str, action="append",
                         help="Enhancement function to apply to each stack")
 #    parser.add_argument("-g", "--view-gamma", dest="view_gamma",
 #                        default=None, type=float, metavar="GAMMA",
@@ -96,7 +96,7 @@ def main():
                         help="Config file")
     parser.add_argument("-C", "--cli", dest="cli", default=False,
                         action="store_true", help="Start CLI instead of GUI")
-    parser.add_argument('fname_in', metavar="FILE", type=str, nargs='+',
+    parser.add_argument('fname_in', metavar="FILE", type=str, nargs='*',
                         help='List of files')
 
     # Parse commandline input
@@ -104,6 +104,8 @@ def main():
 
     # Workaround for windows for getting all the filenames with *.jpg syntax
     args['fname_in'] = get_filenames(args['fname_in'])
+
+    print args
 
     # Check which stacks will be made
     stacks = []
