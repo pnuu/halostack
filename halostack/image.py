@@ -186,7 +186,7 @@ class Image(object):
         '''
         functions = {'usm': self._usm,
                      'emboss': self._emboss,
-                     'blur': self._blur2,
+                     'blur': self._blur3,
                      'gamma': self._gamma,
                      'br': self._blue_red_subtract,
                      'rg': self._red_green_subtract,
@@ -274,7 +274,6 @@ class Image(object):
         args = {'method': {'blur': args}}
         gradient = self._calculate_gradient(args)
         self.img -= gradient.img
-        print np.max(self.img)
 
         if self.img.min() < 0:
             self.img -= self.img.min()
@@ -296,7 +295,6 @@ class Image(object):
             args = {}
             args['method'] = {'blur': None}
             func = methods['blur']
-        print args
         result = func(args['method'])
         shape = self.img.shape
 
@@ -419,7 +417,6 @@ class Image(object):
         else:
             radius = args[0] # args['radius']
 
-        print radius
         kernel = np.ones(2*radius)/(2*radius)
         for i in range(shape[-1]):
             # rows
@@ -439,6 +436,38 @@ class Image(object):
 
         self.img -= np.min(self.img)
 
+    def _blur3(self, args):
+        '''Blur the image using 1D convolution for each column and
+        row. Data borders are padded with mean of the border area
+        before convolution to reduce the edge effects.
+        '''
+        shape = self.img.shape
+        if args is None:
+            radius = int(np.min(shape[:2])/20.)
+        else:
+            radius = args[0] # args['radius']
+
+        kernel = np.ones(2*radius)/(2*radius)
+        for i in range(shape[-1]):
+            # rows
+            for j in range(shape[0]):
+                vect = np.zeros(2*radius+shape[1]-1)
+                vect[:radius] = np.mean(self.img[j, :radius, i])
+                vect[radius:radius+shape[1]] = self.img[j, :, i]
+                vect[-radius:] = np.mean(self.img[j, -radius:, i])
+                vect_conv = np.convolve(vect, kernel, mode='full')
+                self.img[j, :, i] = vect_conv[2*radius:2*radius+shape[1]]
+            # columns
+            for j in range(shape[1]):
+                vect = np.zeros(2*radius+shape[1]-1)
+                vect[:radius] = np.mean(self.img[:radius, j, i])
+                vect[radius:radius+shape[0]] = self.img[:, j, i]
+                vect[-radius:] = np.mean(self.img[-radius:, j, i])
+                vect_conv = np.convolve(vect, kernel, mode='full')
+                self.img[:, j, i] = vect_conv[2*radius:2*radius+shape[0]]
+
+        self.img -= np.min(self.img)
+
     def _gamma(self, args):
         '''Apply gamma correction to the image.
         '''
@@ -446,14 +475,13 @@ class Image(object):
         self.img.gamma(args[0])
 
 def to_numpy(img):
-    '''Convert the image data to numpy array.
+    '''Convert ImageMagick data to numpy array.
     '''
     if not isinstance(img, np.ndarray):
         img.magick('RGB')
         blob = Blob()
         img.write(blob)
-        data = blob.data
-        out_img = np.fromstring(data, dtype='uint'+str(img.depth()))
+        out_img = np.fromstring(blob.data, dtype='uint'+str(img.depth()))
 
         height, width, chans = img.rows(), img.columns(), 3
         if img.monochrome():
@@ -464,19 +492,29 @@ def to_numpy(img):
     return img
 
 def to_imagemagick(img):
-    '''Convert the numpy array to Imagemagick format.
+    '''Convert numpy array to Imagemagick format.
     '''
+
     if not isinstance(img, PMImage):
         out_img = PMImage()
-        if img.dtype == 'uint8':
+        if img.dtype == np.uint8:
             out_img.depth(8)
         else:
             out_img.depth(16)
-        out_img.magick('RGB')
+
         shape = img.shape
+        # Save also B&W images as RGB
+        if len(shape) == 2:
+            tmp = np.empty((shape[0], shape[1], 3), dtype=img.dtype)
+            tmp[:, :, 0] = img
+            tmp[:, :, 1] = img
+            tmp[:, :, 2] = img
+            img = tmp
+        out_img.magick('RGB')
         out_img.size(str(shape[1])+'x'+str(shape[0]))
         blob = Blob()
         blob.data = img.tostring()
+
         out_img.read(blob)
         out_img.magick('PNG')
 
