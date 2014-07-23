@@ -53,6 +53,20 @@ def cli(args):
     for stack in stacks:
         stack.add_image(base_img)
 
+    aligner = Align(base_img, ref_loc=args['focus_reference'],
+                    srch_area=args['focus_area'])
+
+    for img in images:
+        # align image
+        img = aligner.align(img)
+
+        for stack in stacks:
+            stack.add_image(img)
+
+    for i in range(len(stacks)):
+        img = stack[i].calculate()
+        img.save(args['stack_fnames'][i])
+
 def gui(args):
     '''GUI interface. No GUI available, will use CLI'''
     cli(args)
@@ -109,16 +123,21 @@ def main():
 
     # Check which stacks will be made
     stacks = []
+    stack_fnames = []
     if args['min_stack_file']:
         stacks.append('min')
+        stack_fnames.append(args['min_stack_file'])
     if args['max_stack_file']:
         stacks.append('max')
+        stack_fnames.append(args['max_stack_file'])
     if args['avg_stack_file']:
         stacks.append('mean')
+        stack_fnames.append(args['mean_stack_file'])
     if args['median_stack_file']:
         stacks.append('median')
+        stack_fnames.append(args['median_stack_file'])
     args['stacks'] = stacks
-
+    args['stack_fnames'] = stack_fnames
     # Check which adjustments are made for each image, and then for
     # the resulting stacks
     args['enhance_images'] = parse_enhancements(args['enhance_images'])
