@@ -55,7 +55,7 @@ class TestStack(unittest.TestCase):
                                                          dtype=np.float))
         stack.stack.img[1, 1, 1] = 13
         stack.stack.img[2, 2, 1] = 23
-        stack.stack._scale({'bits': 16})
+        stack.stack._scale(16)
         result = stack.stack.img
         self.assertTrue(result.min() == 0)
         self.assertTrue(result[1, 1, 1] == 32767)

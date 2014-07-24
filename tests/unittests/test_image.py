@@ -120,45 +120,45 @@ class TestImage(unittest.TestCase):
     def test_channel_differences(self):
         # B-R
         img = 1*self.img_rgb
-        img._blue_red_subtract({'multiplier': 1})
+        img._blue_red_subtract(1)
         self.assertItemsEqual(self.img3.img, img.img)
         img = 1*self.img_rgb
-        img._red_green_subtract({'multiplier': 2})
+        img._red_green_subtract(2)
         self.assertItemsEqual(self.img1.img, img.img)
         img = 1*self.img_rgb
-        img._red_green_subtract({'multiplier': None})
+        img._red_green_subtract(None)
         self.assertItemsEqual(-1.5*self.img2.img, img.img)
 
     def test_rgb_subtract(self):
         img = 1*self.img_rgb
-        img._rgb_subtract()
+        img._rgb_subtract(None)
         correct_result = np.zeros((3, 3, 3))
-        correct_result[:, :, 0] = -1
-        correct_result[:, :, 2] = 1
+        correct_result[:, :, 1] = 1
+        correct_result[:, :, 2] = 2
         self.assertItemsEqual(correct_result, img.img)
 
     def test_scale_values(self):
-        self.img_rand8._scale({'bits': 8})
+        self.img_rand8._scale(8)
         self.assertTrue(self.img_rand8.img.dtype == 'uint8')
         self.assertTrue(self.img_rand8.min() == 0)
         self.assertTrue(self.img_rand8.max() == 255)
 
-        self.img_rand16._scale({'bits': 16})
+        self.img_rand16._scale(16)
         self.assertTrue(self.img_rand16.img.dtype == 'uint16')
         self.assertTrue(self.img_rand16.min() == 0)
         self.assertTrue(self.img_rand16.max() == 2**16-1)
 
-        self.img_rand_big1._scale({'bits': 8})
+        self.img_rand_big1._scale(8)
         self.assertTrue(self.img_rand_big1.img.dtype == 'uint8')
         self.assertTrue(self.img_rand_big1.min() == 0)
         self.assertTrue(self.img_rand_big1.max() == 255)
 
-        self.img_rand_big2._scale({'bits': 16})
+        self.img_rand_big2._scale(16)
         self.assertTrue(self.img_rand_big2.img.dtype == 'uint16')
         self.assertTrue(self.img_rand_big2.min() == 0)
         self.assertTrue(self.img_rand_big2.max() == 2**16-1)
 
-        self.img_rand_neg._scale({'bits': 8})
+        self.img_rand_neg._scale(8)
         self.assertTrue(self.img_rand_neg.min() >= 0)
 
     def assertItemsEqual(self, a, b):
