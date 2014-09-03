@@ -33,6 +33,11 @@ def cli(args):
     '''Commandline interface.'''
 
     images = args['fname_in']
+
+    if len(images) == 0:
+        print "No images given."
+        return
+
     stacks = []
     for stack in args['stacks']:
         stacks.append(Stack(stack, len(images)))
@@ -40,7 +45,7 @@ def cli(args):
     base_img = Image(fname=images[0], enhancements=args['enhance_images'])
     images.remove(images[0])
 
-    if not args['no_alignment'] and len(images) > 1:
+    if not args['no_alignment'] and len(images) > 0:
         print "Click tight area (two opposite corners) for "\
             "reference location."
         args['focus_reference'] = get_two_points(base_img)
@@ -48,7 +53,7 @@ def cli(args):
             "reference will be in every image."
         args['focus_area'] = get_two_points(base_img)
 
-        print args['focus_reference'], args['focus_area']
+#        print args['focus_reference'], args['focus_area']
 
     for stack in stacks:
         stack.add_image(base_img)
@@ -57,6 +62,8 @@ def cli(args):
                     srch_area=args['focus_area'])
 
     for img in images:
+        # Read image
+        img = Image(fname=img, enhancements=args['enhance_images'])
         # align image
         img = aligner.align(img)
 
@@ -64,7 +71,7 @@ def cli(args):
             stack.add_image(img)
 
     for i in range(len(stacks)):
-        img = stack[i].calculate()
+        img = stacks[i].calculate()
         img.save(args['stack_fnames'][i])
 
 def gui(args):
@@ -117,6 +124,7 @@ def main():
     args = vars(parser.parse_args())
 
     # Workaround for windows for getting all the filenames with *.jpg syntax
+    # that is expanded by shell in linux
     args['fname_in'] = get_filenames(args['fname_in'])
 
     print args
@@ -132,7 +140,7 @@ def main():
         stack_fnames.append(args['max_stack_file'])
     if args['avg_stack_file']:
         stacks.append('mean')
-        stack_fnames.append(args['mean_stack_file'])
+        stack_fnames.append(args['avg_stack_file'])
     if args['median_stack_file']:
         stacks.append('median')
         stack_fnames.append(args['median_stack_file'])

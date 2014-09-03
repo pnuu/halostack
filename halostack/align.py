@@ -63,8 +63,11 @@ class Align(object):
         '''
 
         # Get the correlation and the location of the best match
-        corr, y_loc, x_loc = self.align_func(img)
+        corr, x_loc, y_loc = self.align_func(img)
+        # Calculate shift
+        x_shift, y_shift = self._calc_shift(x_loc, y_loc)
         # Shift the image
+        img = self._shift(img, x_shift, y_shift)
 
         return img
 
@@ -95,14 +98,18 @@ class Align(object):
         # loop is from {x,y} +- ref_{x,y} so divide by two
         ref_shp = [x/2 for x in self.ref.shape]
 
-        ylims, xlims = [0, 0], [0, 0]
-        ylims[0], xlims[0], ylims[1], xlims[1] = self.srch_area
+        ylims = [self.srch_area[1]-self.srch_area[2],
+                 self.srch_area[1]+self.srch_area[2]]
+        xlims = [self.srch_area[0]-self.srch_area[2],
+                 self.srch_area[0]+self.srch_area[2]]
 
         # Check area limits
+        # minimums
         if xlims[0] < ref_shp[1]:
             xlims[0] = ref_shp[1]
         if ylims[0] < ref_shp[0]:
             ylims[0] = ref_shp[0]
+        # maximums
         if xlims[1] >= img_shp[1] - ref_shp[1]:
             xlims[1] = img_shp[1] - ref_shp[1] - 1
         if ylims[1] >= img_shp[0] - ref_shp[0]:
@@ -125,14 +132,65 @@ class Align(object):
         ref_flat = self.ref.flatten()
         best_corr = np.corrcoef(best_fit_data, ref_flat)**2
 
+        print "###########"
+        print xlims, ylims
+        print best_corr[0, 1], best_res[1], best_res[2]
+        print "###########"
+
         return (best_corr[0, 1], best_res[1], best_res[2]) # corr, x, y
 
-    def _calc_shift(self, img):
+    def _calc_shift(self, x_loc, y_loc):
         '''Calculate how much the images need to be shifted.
         '''
-        pass
+        print "--------------------"
+        print x_loc, y_loc, self.ref_loc
+        print "--------------------"
+        return self.ref_loc[0] - x_loc, self.ref_loc[1] - y_loc
 
-    def _shift(self, img, x_sift, y_sift):
-        '''Shift the image by x_sift and y_sift pixels.
+    def _shift(self, img, x_shift, y_shift):
+        '''Shift the image by x_shift and y_shift pixels.
         '''
-        pass
+        new_img = 0*img
+        output_x_range, output_y_range, input_x_range, input_y_range = \
+            self._calc_shift_ranges(x_shift, y_shift)
+        print "##########"
+        print self.img.shape
+        print x_shift, y_shift
+        print output_x_range, output_y_range
+        print input_x_range, input_y_range
+        print "##########"
+        new_img[output_y_range[0]:output_y_range[1],
+                output_x_range[0]:output_x_range[1], :] = \
+            img[input_y_range[0]:input_y_range[1],
+                input_x_range[0]:input_x_range[1], :]
+
+        return new_img
+
+    def _calc_shift_ranges(self, x_shift, y_shift):
+        '''Calculate shift indices for input and output arrays.
+        '''
+        # width of the portion to be moved
+        width = self.img.shape[1] - int(np.fabs(x_shift))
+        # height of the portion to be moved
+        height = self.img.shape[0] - int(np.fabs(y_shift))
+
+        # Calculate the corner indices of the area to be moved
+        if x_shift < 0:
+            n_x1, n_x2 = 0, width
+            o_x1, o_x2 = -1*x_shift, -1*x_shift+width
+        else:
+            n_x1, n_x2 = x_shift, x_shift+width
+            o_x1, o_x2 = 0, width
+        if y_shift < 0:
+            n_y1, n_y2 = 0, height
+            o_y1, o_y2 = -1*y_shift, -1*y_shift+height
+        else:
+            n_y1, n_y2 = y_shift, y_shift+height
+            o_y1, o_y2 = 0, height
+
+        output_x_range = (n_x1, n_x2)
+        output_y_range = (n_y1, n_y2)
+        input_x_range = (o_x1, o_x2)
+        input_y_range = (o_y1, o_y2)
+
+        return output_x_range, output_y_range, input_x_range, input_y_range

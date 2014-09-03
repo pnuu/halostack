@@ -38,6 +38,7 @@ class Image(object):
             self._read()
         if enhancements:
             self.enhance(enhancements)
+        self.shape = None
         self._to_numpy()
 
     def __add__(self, img):
@@ -140,6 +141,7 @@ class Image(object):
         '''Convert from PMImage to numpy.
         '''
         self.img = to_numpy(self.img)
+        self.shape = self.img.shape
 
     def _to_imagemagick(self):
         '''Convert from numpy to PMImage.
