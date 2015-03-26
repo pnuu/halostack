@@ -24,7 +24,6 @@
 
 import numpy as np
 from halostack.image import Image
-from halostack import image
 
 class Stack(object):
     '''Class for image stacks'''

@@ -64,6 +64,7 @@ class Align(object):
 
         # Get the correlation and the location of the best match
         corr, x_loc, y_loc = self.align_func(img)
+        del corr
         # Calculate shift
         x_shift, y_shift = self._calc_shift(x_loc, y_loc)
         # Shift the image
@@ -188,9 +189,8 @@ class Align(object):
             n_y1, n_y2 = y_shift, y_shift+height
             o_y1, o_y2 = 0, height
 
-        output_x_range = (n_x1, n_x2)
-        output_y_range = (n_y1, n_y2)
-        input_x_range = (o_x1, o_x2)
-        input_y_range = (o_y1, o_y2)
+        output_ranges = ((n_x1, n_x2), (n_y1, n_y2))
+        input_ranges = ((o_x1, o_x2), (o_y1, o_y2))
 
-        return output_x_range, output_y_range, input_x_range, input_y_range
+        return (output_ranges[0], output_ranges[1],
+                input_ranges[0], input_ranges[1])
