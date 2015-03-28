@@ -20,22 +20,64 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-'''Halostack main.'''
+'''Halostack CLI main.'''
 
 from halostack.stack import Stack
 from halostack.image import Image
 from halostack.align import Align
 from halostack.helpers import (get_filenames, parse_enhancements,
-                               get_two_points)
+                               get_two_points, read_config)
 import argparse
+import logging
 
-def cli(args):
+LOGGER = logging.getLogger("halostack_cli")
+
+def logging_setup(args):
+    '''Setup logging.
+    '''
+
+    # Clear earlier handlers
+    LOGGER.handlers = []
+
+    if args is None:
+        loglevel = logging.INFO
+    else:
+        loglevel = args.get("loglevel", "INFO").upper()
+        try:
+            loglevel = getattr(logging, loglevel)
+        except AttributeError:
+            loglevel = logging.INFO
+
+    # Set logging level
+    LOGGER.setLevel(loglevel)
+
+    # create formatter
+    formatter = \
+        logging.Formatter('%(asctime)s - %(name)s - %(levelname)s: %(message)s')
+
+    # create console handler and set level
+    log_con = logging.StreamHandler()
+    log_con.setLevel(loglevel)
+    # add formatter to console logger
+    log_con.setFormatter(formatter)
+    LOGGER.addHandler(log_con)
+
+    # create file handler and set level
+    log_file = logging.FileHandler("halostack_cli.log", mode='w')
+    log_file.setLevel(loglevel)
+    # add formatter to file logger
+    log_file.setFormatter(formatter)
+    LOGGER.addHandler(log_file)
+
+
+def halostack_cli(args):
     '''Commandline interface.'''
 
     images = args['fname_in']
 
     if len(images) == 0:
-        print "No images given."
+        LOGGER.error("No images given.")
+        LOGGER.error("Exiting.")
         return
 
     stacks = []
@@ -43,40 +85,57 @@ def cli(args):
         stacks.append(Stack(stack, len(images)))
 
     base_img = Image(fname=images[0], enhancements=args['enhance_images'])
+    LOGGER.info("Using %s as base image.", base_img.fname)
     images.remove(images[0])
 
     if not args['no_alignment'] and len(images) > 0:
+        view_img = base_img.luminance()
+        view_img.enhance({'gamma': args['view_gamma']})
         print "Click tight area (two opposite corners) for "\
             "reference location."
-        args['focus_reference'] = get_two_points(base_img)
+        args['focus_reference'] = get_two_points(view_img)
+        LOGGER.info("Reference area: [%d, %d] to [%d, %d]",
+                    args['focus_reference'][0][0],
+                    args['focus_reference'][1][0],
+                    args['focus_reference'][0][1],
+                    args['focus_reference'][1][1])
         print "Click two corner points for the area where alignment "\
             "reference will be in every image."
-        args['focus_area'] = get_two_points(base_img)
-
-#        print args['focus_reference'], args['focus_area']
+        args['focus_area'] = get_two_points(view_img)
+        LOGGER.info("User-selected search area: [%d, %d] to [%d, %d]",
+                    args['focus_area'][0][0],
+                    args['focus_area'][1][0],
+                    args['focus_area'][0][1],
+                    args['focus_area'][1][1])
+        del view_img
 
     for stack in stacks:
+        LOGGER.debug("Adding %s to %s stack", base_img.fname, stack.mode)
         stack.add_image(base_img)
 
+    LOGGER.debug("Initializing alignment.")
     aligner = Align(base_img, ref_loc=args['focus_reference'],
                     srch_area=args['focus_area'])
+    LOGGER.info("Alignment initialized.")
 
     for img in images:
         # Read image
+        LOGGER.info("Reading %s.", img)
         img = Image(fname=img, enhancements=args['enhance_images'])
         # align image
+        LOGGER.info("Aligning image.")
         img = aligner.align(img)
 
         for stack in stacks:
+            LOGGER.info("Adding image to %s stack.", stack.mode)
             stack.add_image(img)
 
     for i in range(len(stacks)):
+        LOGGER.info("Calculating %s stack", stacks[i].mode)
         img = stacks[i].calculate()
+        LOGGER.info("Saving %s stack to %s.", stacks[i].mode,
+                    args['stack_fnames'][i])
         img.save(args['stack_fnames'][i])
-
-def gui(args):
-    '''GUI interface. No GUI available, will use CLI'''
-    cli(args)
 
 def main():
     '''Main. Only commandline and config file parsing is done here.'''
@@ -110,24 +169,34 @@ def main():
     parser.add_argument("-E", "--enhance-stacks", dest="enhance_stacks",
                         default=[], type=str, action="append",
                         help="Enhancement function to apply to each stack")
-#    parser.add_argument("-g", "--view-gamma", dest="view_gamma",
-#                        default=None, type=float, metavar="GAMMA",
-#                        help="Adjust image gamma for alignment preview")
-    parser.add_argument("-c", "--config", dest="config", metavar="FILE",
-                        help="Config file")
-    parser.add_argument("-C", "--cli", dest="cli", default=False,
-                        action="store_true", help="Start CLI instead of GUI")
+    parser.add_argument("-g", "--view-gamma", dest="view_gamma",
+                        default=None, type=float, metavar="GAMMA",
+                        help="Adjust image gamma for alignment preview")
+    parser.add_argument("-C", "--config_file", dest="config_file",
+                        metavar="FILE", default=None, help="Config file")
+    parser.add_argument("-c", "--config_item", dest="config_item",
+                        metavar="STR", default=None,
+                        help="Config item to select parameters")
     parser.add_argument('fname_in', metavar="FILE", type=str, nargs='*',
                         help='List of files')
+
+    # Setup logging
+    logging_setup(None)
 
     # Parse commandline input
     args = vars(parser.parse_args())
 
-    # Workaround for windows for getting all the filenames with *.jpg syntax
-    # that is expanded by shell in linux
-    args['fname_in'] = get_filenames(args['fname_in'])
+    # Read configuration from the config file if one is given
+    if args["config_item"] is not None:
+        args = read_config(args)
 
-    print args
+    # Re-adjust logging
+    logging_setup(args)
+
+    # Workaround for windows for getting all the filenames with *.jpg syntax
+    # that is expanded by the shell in linux
+    args['fname_in'] = get_filenames(args['fname_in'])
+    LOGGER.debug(args['fname_in'])
 
     # Check which stacks will be made
     stacks = []
@@ -135,26 +204,29 @@ def main():
     if args['min_stack_file']:
         stacks.append('min')
         stack_fnames.append(args['min_stack_file'])
+        LOGGER.debug("Added minimum stack")
     if args['max_stack_file']:
         stacks.append('max')
         stack_fnames.append(args['max_stack_file'])
+        LOGGER.debug("Added maximum stack")
     if args['avg_stack_file']:
         stacks.append('mean')
         stack_fnames.append(args['avg_stack_file'])
+        LOGGER.debug("Added average stack")
     if args['median_stack_file']:
         stacks.append('median')
         stack_fnames.append(args['median_stack_file'])
+        LOGGER.debug("Added median stack")
     args['stacks'] = stacks
     args['stack_fnames'] = stack_fnames
+
     # Check which adjustments are made for each image, and then for
     # the resulting stacks
     args['enhance_images'] = parse_enhancements(args['enhance_images'])
     args['enhance_stacks'] = parse_enhancements(args['enhance_stacks'])
 
-    if args['cli']:
-        cli(args)
-    else:
-        gui(args)
+    LOGGER.info("Starting stacking")
+    halostack_cli(args)
 
 
 if __name__ == "__main__":

@@ -26,6 +26,9 @@ from PythonMagick import Image as PMImage
 from PythonMagick import Blob
 import numpy as np
 import itertools
+import logging
+
+LOGGER = logging.getLogger(__name__)
 
 class Image(object):
     '''Image class'''
@@ -197,6 +200,7 @@ class Image(object):
                      'stretch': self._stretch}
 
         for key in enhancements:
+            LOGGER.info("Apply %s.", key)
             func = functions[key]
             func(enhancements[key])
 
@@ -215,17 +219,20 @@ class Image(object):
         '''Subtract red channel from the blue channel after scaling
         the blue channel using the supplied multiplier.
         '''
+        LOGGER.debug("Calculating channel difference, blue-red.")
         self._channel_difference(2, 0, multiplier=args)
 
     def _red_green_subtract(self, args):
         '''Subtract green channel from the red channel after scaling
         the red channel using the supplied multiplier.
         '''
+        LOGGER.debug("Calculating channel difference, red-green.")
         self._channel_difference(0, 1, multiplier=args)
 
     def _rgb_subtract(self, args):
         '''Subtract the mean(r,g,b) from all the channels.
         '''
+        LOGGER.debug("Subtracting luminance from all color channels.")
         del args
         self._to_numpy()
         self.img = self.img.astype(np.float)
@@ -243,6 +250,9 @@ class Image(object):
             args.append(0.05)
         if len(args) == 2:
             args.append(0.05)
+        LOGGER.debug("Applying linear stretch.")
+        LOGGER.debug("%d bits, low cut: %.2f \%, high cut: %.2f \%",
+                     args[0], args[1], args[2])
         # Use luminance
         lumin = np.mean(self.img, 2)
         lumin -= np.min(lumin)
@@ -250,8 +260,8 @@ class Image(object):
 
         hist, _ = np.histogram(lumin.flatten(), 2**args[0]-1,
                                normed=True)
-        cdf = hist.cumsum() #cumulative distribution function
-        cdf = (2**args[0]-1) * cdf / cdf[-1] #normalize
+        cdf = hist.cumsum() # cumulative distribution function
+        cdf = (2**args[0]-1) * cdf / cdf[-1] # normalize
 
         start = 0
         csum = 0
@@ -272,6 +282,7 @@ class Image(object):
         original, scale back to full bit depth and return the result.
         '''
         self._to_numpy()
+        LOGGER.debug("Removing gradient.")
         self.img = self.img.astype(np.float)
         args = {'method': {'blur': args}}
         gradient = self._calculate_gradient(args)
@@ -291,9 +302,12 @@ class Image(object):
         # 'mask': self._gradient_mask_points,
         # 'all': self._gradient_all_points
 
+        LOGGER.debug("Calculating gradient.")
         try:
             func = methods[args['method'].keys()[0]]
         except TypeError:
+            LOGGER.error("Method \"%s\" not available, using method \"blur\"",
+                         args['method'].keys()[0])
             args = {}
             args['method'] = {'blur': None}
             func = methods['blur']
@@ -368,19 +382,22 @@ class Image(object):
         if img_max != 0:
             img = (2**args[0] - 1) * img / img_max
         if args[0] <= 8:
+            LOGGER.info("Fitting the image to 8-bits.")
             self.img = img.astype('uint8')
         else:
+            LOGGER.info("Fitting the image to 16-bits.")
             self.img = img.astype('uint16')
 
     def _rotate(self, *args):
         '''Rotate image.
         '''
         # use scipy.ndimage.interpolation.rotate()
-        pass
+        LOGGER.error("Image rotation not implemented.")
 
     def _usm(self, args):
         '''Unsharp mask sharpen the image.
         '''
+        LOGGER.debug("Apply unsharp mask.")
         self._to_imagemagick()
         if len(args) == 2:
             args.append(np.sqrt(args[0]))
@@ -392,6 +409,7 @@ class Image(object):
         '''Emboss filter the image. Actually uses shade() from
         ImageMagick.
         '''
+        LOGGER.debug("Apply emboss.")
         if args is None:
             args = []
         if len(args) == 0:
@@ -480,6 +498,7 @@ def to_numpy(img):
     '''Convert ImageMagick data to numpy array.
     '''
     if not isinstance(img, np.ndarray):
+        LOGGER.debug("Converting from ImageMagick to Numpy.")
         img.magick('RGB')
         blob = Blob()
         img.write(blob)
@@ -498,6 +517,7 @@ def to_imagemagick(img):
     '''
 
     if not isinstance(img, PMImage):
+        LOGGER.debug("Converting from Numpy to ImageMagick.")
         out_img = PMImage()
         if img.dtype == np.uint8:
             out_img.depth(8)
@@ -528,6 +548,7 @@ def polyfit2d(x_loc, y_loc, z_val, order=2):
 
     Implementation from: http://stackoverflow.com/a/7997925
     '''
+    LOGGER.debug("2D polynomial fit")
     ncols = (order + 1)**2
     g_mat = np.zeros((x_loc.size, ncols))
     ij_loc = itertools.product(range(order+1), range(order+1))
@@ -541,6 +562,7 @@ def polyval2d(x_loc, y_loc, poly):
 
     Implementation from: http://stackoverflow.com/a/7997925
     '''
+    LOGGER.debug("Evaluate 2D polynomial.")
     order = int(np.sqrt(len(poly))) - 1
     ij_loc = itertools.product(range(order+1), range(order+1))
     surf = np.zeros_like(x_loc)

@@ -26,6 +26,8 @@ import logging
 from glob import glob
 import matplotlib.pyplot as plt
 import numpy as np
+import ConfigParser
+from collections import OrderedDict as od
 
 LOGGER = logging.getLogger(__name__)
 
@@ -52,8 +54,8 @@ def get_filenames(fnames):
 def parse_enhancements(params):
     '''Parse image enhancements and their parameters, if any.
     '''
-    output = {}
-
+    output = od()
+    LOGGER.debug("Parsing enhancements.")
     for param in params:
         param = param.split(":")
         if len(param) > 1:
@@ -105,5 +107,23 @@ def get_image_coordinates(img_in, num):
         x_c, y_c = pnt
         x_cs.append(int(x_c))
         y_cs.append(int(y_c))
+        LOGGER.debug("Got image coordinate (%d, %d).", x_cs[-1], y_cs[-1])
 
     return x_cs, y_cs
+
+def read_config(args):
+    '''Read and parse configuration from a file given in *args* and
+    update the argument dictionary.
+    '''
+    fname = args['config_file']
+    LOGGER.info("Reading configuration file %s.", fname)
+    config_name = args.get(args, 'config_item', 'default')
+
+    config = ConfigParser.ConfigParser()
+    config.read(fname)
+
+    cfg = dict(config.items(config_item))
+    for itm in cfg.items():
+        args[itm] = cfg[itm]
+
+    return args

@@ -23,12 +23,17 @@
 '''Module for image stacks'''
 
 import numpy as np
+import logging
 from halostack.image import Image
+
+LOGGER = logging.getLogger(__name__)
 
 class Stack(object):
     '''Class for image stacks'''
 
     def __init__(self, mode, num):
+        LOGGER.debug("Initializing %s stack for %d images.",
+                     mode, num)
         self.stack = None
         self.mode = mode
         self._mode_functions = {'min': {'update': self._update_min,
@@ -50,6 +55,7 @@ class Stack(object):
         '''Add a frame to the stack.
         '''
         if not isinstance(img, Image):
+            LOGGER.debug("Converting %s to Image object.", img)
             img = Image(img=img)
 
         self._update_stack(img)
@@ -140,4 +146,4 @@ class Stack(object):
         '''Calculate the sigma-reject average of the stack and return
         the result as Image(dtype=uint16).
         '''
-        pass
+        LOGGER.debug("Sigma stack not implemented.")

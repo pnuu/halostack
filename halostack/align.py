@@ -23,12 +23,16 @@
 '''Module for coaligning images'''
 
 import numpy as np
+import logging
+
+LOGGER = logging.getLogger(__name__)
 
 class Align(object):
     '''Class to coalign images
     '''
     def __init__(self, img, ref_loc=None, srch_area=None, mode='simple'):
 
+        LOGGER.info("Initiliazing aligner using %s mode.", mode)
         modes = {'simple': self._simple_match}
 
         self.img = img
@@ -38,6 +42,8 @@ class Align(object):
         try:
             self.align_func = modes[mode]
         except AttributeError:
+            LOGGER.warning("Mode %s not recognized, using simple mode instead.",
+                         mode)
             self.align_func = self._simple_match
 
         if ref_loc is not None:
@@ -46,31 +52,41 @@ class Align(object):
             y_size, x_size = self.img.shape
             self.srch_area = [0, 0, y_size, x_size]
 
+
     def set_reference(self, area):
         '''Set the reference area *area*.
         param area: 3-tuple of the form (x, y, radius)
         '''
+        LOGGER.debug("Setting reference location: (%d, %d), radius: %d.",
+                     area[0], area[1], area[2])
         self.ref_loc = area
+
 
     def set_search_area(self, area):
         '''Set the reference search area *area*.
         param area: 4-tuple of the form (x1, x2, y1, y2)
         '''
+        LOGGER.debug("Setting search area to (%d, %d) - (%d, %d).",
+                     area[0], area[1], area[2], area[3])
         self.srch_area = area
+
 
     def align(self, img):
         '''Align the given image with the reference image.
         '''
-
+        LOGGER.info("Calculating image alignment.")
         # Get the correlation and the location of the best match
         corr, x_loc, y_loc = self.align_func(img)
         del corr
         # Calculate shift
         x_shift, y_shift = self._calc_shift(x_loc, y_loc)
+        LOGGER.info("Shifting image: x = %d, y = %d.",
+                    x_sift, y_shift)
         # Shift the image
         img = self._shift(img, x_shift, y_shift)
 
         return img
+
 
     def _set_ref(self):
         '''Set reference values.
@@ -80,15 +96,18 @@ class Align(object):
                             self.ref_loc[1]-self.ref_loc[2]:\
                                 self.ref_loc[1]+self.ref_loc[2]+1]
 
+
     def _find_reference(self, img):
         '''Find the reference area from the given image.
         '''
-        pass
+        LOGGER.error("TODO: Reference search not implemented.")
+
 
     def _fft_match(self, img):
         '''Use FFT to find the best alignment.
         '''
-        pass
+        LOGGER.error("TODO: FFT alignment not implemented.")
+
 
     def _simple_match(self, img):
         '''Use least squared difference to find the best alignment. Slow.
@@ -118,6 +137,7 @@ class Align(object):
 
         best_res = [2**64, None, None]
 
+        LOGGER.debug("Looping through search area.")
         for i in range(xlims[0], xlims[1]):
             xran = range(i-ref_shp[1], i+ref_shp[1]+1)
             for j in range(ylims[0], ylims[1]):
@@ -133,33 +153,26 @@ class Align(object):
         ref_flat = self.ref.flatten()
         best_corr = np.corrcoef(best_fit_data, ref_flat)**2
 
-        print "###########"
-        print xlims, ylims
-        print best_corr[0, 1], best_res[1], best_res[2]
-        print "###########"
+        LOGGER.info("Best correlation was %.3f at (%d, %d).",
+                    best_corr[0, 1], best_res[1], best_res[2])
 
         return (best_corr[0, 1], best_res[1], best_res[2]) # corr, x, y
+
 
     def _calc_shift(self, x_loc, y_loc):
         '''Calculate how much the images need to be shifted.
         '''
-        print "--------------------"
-        print x_loc, y_loc, self.ref_loc
-        print "--------------------"
+        LOGGER.debug("Calculating shift.")
         return self.ref_loc[0] - x_loc, self.ref_loc[1] - y_loc
+
 
     def _shift(self, img, x_shift, y_shift):
         '''Shift the image by x_shift and y_shift pixels.
         '''
+        LOGGER.info("Shifting image.")
         new_img = 0*img
         output_x_range, output_y_range, input_x_range, input_y_range = \
             self._calc_shift_ranges(x_shift, y_shift)
-        print "##########"
-        print self.img.shape
-        print x_shift, y_shift
-        print output_x_range, output_y_range
-        print input_x_range, input_y_range
-        print "##########"
         new_img[output_y_range[0]:output_y_range[1],
                 output_x_range[0]:output_x_range[1], :] = \
             img[input_y_range[0]:input_y_range[1],
@@ -167,9 +180,11 @@ class Align(object):
 
         return new_img
 
+
     def _calc_shift_ranges(self, x_shift, y_shift):
         '''Calculate shift indices for input and output arrays.
         '''
+        LOGGER.debug("Calculating shift ranges.")
         # width of the portion to be moved
         width = self.img.shape[1] - int(np.fabs(x_shift))
         # height of the portion to be moved
