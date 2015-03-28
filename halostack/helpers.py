@@ -117,7 +117,7 @@ def read_config(args):
     '''
     fname = args['config_file']
     LOGGER.info("Reading configuration file %s.", fname)
-    config_name = args.get(args, 'config_item', 'default')
+    config_item = args.get(args, 'config_item', 'default')
 
     config = ConfigParser.ConfigParser()
     config.read(fname)

@@ -81,7 +81,7 @@ class Align(object):
         # Calculate shift
         x_shift, y_shift = self._calc_shift(x_loc, y_loc)
         LOGGER.info("Shifting image: x = %d, y = %d.",
-                    x_sift, y_shift)
+                    x_shift, y_shift)
         # Shift the image
         img = self._shift(img, x_shift, y_shift)
 
@@ -100,12 +100,14 @@ class Align(object):
     def _find_reference(self, img):
         '''Find the reference area from the given image.
         '''
+        del img
         LOGGER.error("TODO: Reference search not implemented.")
 
 
     def _fft_match(self, img):
         '''Use FFT to find the best alignment.
         '''
+        del img
         LOGGER.error("TODO: FFT alignment not implemented.")
 
 

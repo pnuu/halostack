@@ -251,7 +251,7 @@ class Image(object):
         if len(args) == 2:
             args.append(0.05)
         LOGGER.debug("Applying linear stretch.")
-        LOGGER.debug("%d bits, low cut: %.2f \%, high cut: %.2f \%",
+        LOGGER.debug("%d bits, low cut: %.2f %%, high cut: %.2f %%",
                      args[0], args[1], args[2])
         # Use luminance
         lumin = np.mean(self.img, 2)
@@ -392,6 +392,7 @@ class Image(object):
         '''Rotate image.
         '''
         # use scipy.ndimage.interpolation.rotate()
+        del args
         LOGGER.error("Image rotation not implemented.")
 
     def _usm(self, args):

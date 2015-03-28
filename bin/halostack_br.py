@@ -3,7 +3,6 @@
 from halostack.image import Image
 import sys
 import os
-from collections import OrderedDict as od
 
 # input file
 fname_in = sys.argv[1]
