@@ -30,44 +30,73 @@ from halostack.helpers import (get_filenames, parse_enhancements,
 import argparse
 import logging
 
+# log pattern
+LOG_FMT = '%(asctime)s - %(name)s - %(levelname)s: %(message)s'
+
+# Assemble dictionary config
+LOG_CONFIG = {
+    'version': 1,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'level': 'DEBUG',
+            'formatter': 'normal'
+            },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': "halostack_cli.log",
+            'level': 'DEBUG',
+            'formatter': 'normal',
+            'mode': 'w'}
+        },
+    'formatters': {
+        'normal': {'format': LOG_FMT}
+        },
+    'loggers': {
+        'halostack_cli': {
+            'level': 'DEBUG',
+            'handlers': ['file', 'console'],
+            },
+        'halostack.image': {
+            'level': 'DEBUG',
+            'handlers': ['file', 'console'],
+            },
+        'halostack.align': {
+            'level': 'DEBUG',
+            'handlers': ['file', 'console'],
+            },
+        'halostack.stack': {
+            'level': 'DEBUG',
+            'handlers': ['file', 'console'],
+            },
+        'halostack.helpers': {
+            'level': 'DEBUG',
+            'handlers': ['file', 'console'],
+            },
+        }
+    }
+
 LOGGER = logging.getLogger("halostack_cli")
 
 def logging_setup(args):
     '''Setup logging.
     '''
 
+#    global LOGGER
+
     # Clear earlier handlers
-    LOGGER.handlers = []
+    # LOGGER.handlers = []
 
     if args is None:
-        loglevel = logging.INFO
+        loglevel = logging.DEBUG #INFO
     else:
-        loglevel = args.get("loglevel", "INFO").upper()
+        loglevel = args.get("loglevel", "DEBUG").upper()
         try:
             loglevel = getattr(logging, loglevel)
         except AttributeError:
             loglevel = logging.INFO
 
-    # Set logging level
-    LOGGER.setLevel(loglevel)
-
-    # create formatter
-    formatter = \
-        logging.Formatter('%(asctime)s - %(name)s - %(levelname)s: %(message)s')
-
-    # create console handler and set level
-    log_con = logging.StreamHandler()
-    log_con.setLevel(loglevel)
-    # add formatter to console logger
-    log_con.setFormatter(formatter)
-    LOGGER.addHandler(log_con)
-
-    # create file handler and set level
-    log_file = logging.FileHandler("halostack_cli.log", mode='w')
-    log_file.setLevel(loglevel)
-    # add formatter to file logger
-    log_file.setFormatter(formatter)
-    LOGGER.addHandler(log_file)
+    LOGGER.setLevel(loglevel) # = logging.getLogger("halostack_cli")
 
 
 def halostack_cli(args):
@@ -90,23 +119,23 @@ def halostack_cli(args):
 
     if not args['no_alignment'] and len(images) > 0:
         view_img = base_img.luminance()
-        view_img.enhance({'gamma': args['view_gamma']})
+        if isinstance(args['view_gamma'], float):
+            view_img.enhance({'gamma': args['view_gamma']})
         print "Click tight area (two opposite corners) for "\
             "reference location."
         args['focus_reference'] = get_two_points(view_img)
-        LOGGER.info("Reference area: [%d, %d] to [%d, %d]",
-                    args['focus_reference'][0][0],
-                    args['focus_reference'][1][0],
-                    args['focus_reference'][0][1],
-                    args['focus_reference'][1][1])
+        LOGGER.info("Reference area: (%d, %d) with radius %d.",
+                    args['focus_reference'][0],
+                    args['focus_reference'][1],
+                    args['focus_reference'][2])
         print "Click two corner points for the area where alignment "\
             "reference will be in every image."
         args['focus_area'] = get_two_points(view_img)
-        LOGGER.info("User-selected search area: [%d, %d] to [%d, %d]",
-                    args['focus_area'][0][0],
-                    args['focus_area'][1][0],
-                    args['focus_area'][0][1],
-                    args['focus_area'][1][1])
+        print args['focus_area']
+        LOGGER.info("User-selected search area: (%d, %d) with radius %d.",
+                    args['focus_area'][0],
+                    args['focus_area'][1],
+                    args['focus_area'][2])
         del view_img
 
     for stack in stacks:
@@ -180,9 +209,6 @@ def main():
     parser.add_argument('fname_in', metavar="FILE", type=str, nargs='*',
                         help='List of files')
 
-    # Setup logging
-    logging_setup(None)
-
     # Parse commandline input
     args = vars(parser.parse_args())
 
@@ -230,4 +256,8 @@ def main():
 
 
 if __name__ == "__main__":
+#    global LOGGER
+    # Setup logging
+    import logging.config
+    logging.config.dictConfig(LOG_CONFIG)
     main()
