@@ -144,7 +144,8 @@ def halostack_cli(args):
 
     LOGGER.debug("Initializing alignment.")
     aligner = Align(base_img, ref_loc=args['focus_reference'],
-                    srch_area=args['focus_area'])
+                    srch_area=args['focus_area'],
+                    cor_th=args['correlation_threshold'])
     LOGGER.info("Alignment initialized.")
 
     for img in images:
@@ -154,6 +155,10 @@ def halostack_cli(args):
         # align image
         LOGGER.info("Aligning image.")
         img = aligner.align(img)
+
+        if img is None:
+            LOGGER.warning("Threshold was below threshold, skipping image.")
+            continue
 
         for stack in stacks:
             LOGGER.info("Adding image to %s stack.", stack.mode)

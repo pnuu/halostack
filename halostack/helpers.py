@@ -78,14 +78,14 @@ def parse_enhancements(params):
 def get_two_points(img_in):
     '''Get two image pixel coordinates from users' clicks on the
     image, and return them as 3-tuple:
-    (mean(xs), mean(ys), min(abs_diff(xs), abs_diff(ys)).
+    (mean(xs), mean(ys), max(abs_diff(xs), abs_diff(ys)).
     '''
     x_cs, y_cs = get_image_coordinates(img_in, 2)
 
     return (int(np.ceil(np.mean(x_cs))),
             int(np.ceil(np.mean(y_cs))),
-            int(np.ceil(np.min([np.abs(x_cs[0]-x_cs[1]),
-                               np.abs(y_cs[0]-y_cs[1])]))))
+            int(np.ceil(np.max([np.abs(x_cs[0]-x_cs[1]),
+                                np.abs(y_cs[0]-y_cs[1])]))))
 
 def get_image_coordinates(img_in, num):
     '''Get *num* image coordinates from users' clicks on the image.

@@ -30,7 +30,8 @@ LOGGER = logging.getLogger(__name__)
 class Align(object):
     '''Class to coalign images
     '''
-    def __init__(self, img, ref_loc=None, srch_area=None, mode='simple'):
+    def __init__(self, img, ref_loc=None, srch_area=None, cor_th=0.0,
+                 mode='simple'):
 
         LOGGER.info("Initiliazing aligner using %s mode.", mode)
         modes = {'simple': self._simple_match}
@@ -38,7 +39,9 @@ class Align(object):
         self.img = img
         self.ref_loc = ref_loc
         self.srch_area = srch_area
+        self.correlation_threshold = cor_th
         self.ref = None
+
         try:
             self.align_func = modes[mode]
         except AttributeError:
@@ -77,7 +80,11 @@ class Align(object):
         LOGGER.info("Calculating image alignment.")
         # Get the correlation and the location of the best match
         corr, x_loc, y_loc = self.align_func(img)
-        del corr
+        if corr < self.correlation_threshold:
+            LOGGER.warning("Correlation (%.3f) lower than the given " + \
+                               "threshold (%.3f).",
+                           corr, self.correlation_threshold)
+            return None
         # Calculate shift
         x_shift, y_shift = self._calc_shift(x_loc, y_loc)
         LOGGER.info("Shifting image: x = %d, y = %d.",
@@ -114,16 +121,19 @@ class Align(object):
     def _simple_match(self, img):
         '''Use least squared difference to find the best alignment. Slow.
         '''
-
         # Image and reference sizes
         img_shp = list(img.shape)
-        # loop is from {x,y} +- ref_{x,y} so divide by two
-        ref_shp = [x/2 for x in self.ref.shape]
+        # loop is from {x,y} - ref_{x,y} to {x,y} + ref_{x,y} so
+        # divide reference dimensions by two
+        ref_shp = [i/2 for i in self.ref.shape]
 
-        ylims = [self.srch_area[1]-self.srch_area[2],
-                 self.srch_area[1]+self.srch_area[2]]
+        # Get floating point version of the image
+        img_f = 1.0 * img #.img.astype(np.float64)
+
         xlims = [self.srch_area[0]-self.srch_area[2],
                  self.srch_area[0]+self.srch_area[2]]
+        ylims = [self.srch_area[1]-self.srch_area[2],
+                 self.srch_area[1]+self.srch_area[2]]
 
         # Check area limits
         # minimums
@@ -137,14 +147,18 @@ class Align(object):
         if ylims[1] >= img_shp[0] - ref_shp[0]:
             ylims[1] = img_shp[0] - ref_shp[0] - 1
 
+        LOGGER.debug("Search area is in x: %d-%d, in y: %d-%d",
+                     xlims[0], xlims[1],
+                     ylims[0], ylims[1])
+
         best_res = [2**64, None, None]
 
-        LOGGER.debug("Looping through search area.")
+        LOGGER.debug("Searching for best match.")
         for i in range(xlims[0], xlims[1]):
             xran = range(i-ref_shp[1], i+ref_shp[1]+1)
             for j in range(ylims[0], ylims[1]):
-                sqdif = ((img[j-ref_shp[0]:j+ref_shp[0]+1,
-                              xran]-self.ref)**2).sum()
+                sqdif = ((img_f[j-ref_shp[0]:j+ref_shp[0]+1, xran] - \
+                              self.ref)**2).sum()
                 if sqdif < best_res[0]:
                     best_res = [sqdif, i, j]
 
