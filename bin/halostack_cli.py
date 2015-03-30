@@ -169,6 +169,7 @@ def halostack_cli(args):
         img = stacks[i].calculate()
         LOGGER.info("Saving %s stack to %s.", stacks[i].mode,
                     args['stack_fnames'][i])
+        img.enhance(args['enhance_stacks'])
         img.save(args['stack_fnames'][i])
 
 def main():
