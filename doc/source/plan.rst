@@ -5,7 +5,7 @@ The Plan
 Command-line parsing
 --------------------
 
-``./halostack.py [options] <list of filenames>``
+``python bin/halostack_cli.py [options] <list of filenames>``
 
 - -a, --average-stack --- *Output filename of the average stack*
 
@@ -19,15 +19,15 @@ Command-line parsing
 
   ``-M maximum_stack.png``
 
-- -d, --median-stack --- *Output filename of the median stack*
+.. - -d, --median-stack --- *Output filename of the median stack*
 
-  ``-d median_stack.png``
+..  ``-d median_stack.png``
 
 - -t, --correlation-threshold --- *Minimum required correlation [0.7]*
 
   ``-t 0.9``
 
-- -s, --save-images --- *Save aligned images as PNG with the given filename postfix*
+- -s, --save-images --- *Save aligned images as PNG with the given filename prefix*
 
   ``-s aligned_images_``
 
@@ -47,17 +47,17 @@ Command-line parsing
 
   ``-E usm:25,2 gradient:20``
 
-.. - -g, --view-gamma <num> --- *Adjust image gamma for alignment preview*
-.. 
-..  ``-g 1.5``
+- -g, --view-gamma <num> --- *Adjust image gamma for alignment preview*
 
-- -c, --config --- *Use config file <file>*
+  ``-g 1.5``
 
-  ``-c config.ini``
+- -C, --config --- *Use config file <file>*
 
-- -C, --cli --- *Start CLI*
+  ``-C config.ini``
 
-  ``-c``
+- -c, --config_item --- *Select the config item to use*
+
+  ``-c default``
 
   - no arguments
   - GUI not implemented, so this is default for now
@@ -71,7 +71,7 @@ Command-line parsing
 Config file usage
 -----------------
 
-- everything that is available also as command line switches
+- everything that is available also as command line switches --- **implemented**
 
   - follow: Sun or Moon
 
@@ -93,13 +93,13 @@ Image input and conversions
 
   - everything ImageMagick supports, relevant ones being:
 
-    - JPG --- **check**
-    - TIFF --- **check**
-    - PNG --- **check**
-    - RAW with IM+dcraw (only linux?)
+    - JPG --- **implemented**
+    - TIFF --- **implemented**
+    - PNG --- **implemented**
+    - RAW with IM+dcraw (only linux?) --- **implemented**
 
-- convert image to numpy array --- **check**
-- convert numpy array to ImageMagick format --- **check**
+- convert image to numpy array --- **implemented**
+- convert numpy array to ImageMagick format --- **implemented**
 - read date and time from EXIF
 
   - python-exif for linux, windows?
@@ -112,14 +112,14 @@ Alignment prerequisites
 
   - manual
 
-    - matplotlib --- **check**
+    - matplotlib --- **implemented**
     - GUI (not by me)
 
 - selection of area where focus point stays during the stack duration
 
   - manual
 
-    - matplotlib --- **check**
+    - matplotlib --- **implemented**
     - GUI (not by me)
 
   - solar/lunar tracking based on date, time, location and idealized lens model
@@ -135,6 +135,8 @@ Image co-alignment
 
   - convert all the images to RA/DEC coordinates if Sun or Moon used?
 
+  - image rotation?
+
 - calculate rotation
 
   - solar/lunar tracking based on date, time, location and lens projection
@@ -145,11 +147,11 @@ Image co-alignment
 
 - calculate shift
 
-  - reference correlation --- **check**
+  - reference correlation --- **implemented**
   - phase correlation?
   - solar/lunar tracking based on date, time, location and lens projection
 
-- shift image
+- shift image --- **implemented**
 
 
 Image stacking
@@ -165,32 +167,32 @@ ___________________
 
 - remove sky gradient
 
-  - blurred (with large radius) version of the image --- **check**
+  - blurred (with large radius) version of the image --- **implemented**
 
-    - pyimagemagick --- **check**
+    - pyimagemagick --- **implemented**
 
       - slow
 
-    - convolution --- **check**
+    - convolution --- **implemented**
 
       - much faster
       - better results than with pyimagemagick
 
-  - gradient model --- **check**
+  - gradient model --- **implemented**
 
-    - gradient plane: ax^2 + by^2 + cxy + dx + ey + f --- **check**
+    - gradient plane: ax^2 + by^2 + cxy + dx + ey + f --- **implemented**
 
       - better fitting/evaluation algorithms needed
 
-    - uniform reference point selection --- **check**
-    - random reference point selectio --- **check**
+    - uniform reference point selection --- **implemented**
+    - random reference point selectio --- **implemented**
     - area exclusion mask?
 
 Calculate stacks
 ________________
 
-- average --- **check**
-- median --- **check**
+- average --- **implemented**
+- median --- **implemented**
 
   - needs lots of RAM
 
@@ -199,8 +201,8 @@ ________________
   - would be useful for making flat-field images
   - but not really needed?
 
-- minimum --- **check**
-- maximum --- **check**
+- minimum --- **implemented**
+- maximum --- **implemented**
 - sigma-average
 
   - really necessary?
@@ -211,28 +213,25 @@ ________________
 Image postprocessing
 ____________________
 
-- remove gradients --- **check**
+- remove gradients --- **implemented**
 
-  - should be done before stacking
-  - select points or use blur --- **check**
+  - select points or use blur --- **implemented**
 
-- B-R --- **check**
+- B-R, R-G --- **implemented**
 
-  - automatic multiplier calculation --- **check**
+  - automatic multiplier calculation --- **implemented**
+  - manual multiplier --- **implemented**
   - http://opticsaround.blogspot.fr/2013/03/le-traitement-bleu-moins-rouge-blue.html
 
-- R, G, B = (R, G, B) - average(R, G, B) --- **check**
-- USM --- **check**
-- emboss --- **check**
-- gamma --- **check**
+- R, G, B = (R, G, B) - average(R, G, B) --- **implemented**
+- USM --- **implemented**
+- emboss --- **implemented**
+- gamma --- **implemented**
 
 Image output
 -----------------
 
-- scale data to cover full range of the format --- **check**
-
-  - mean
-  - sigma-mean
+- scale data to cover full range of the format --- **implemented**
 
 - formats
 

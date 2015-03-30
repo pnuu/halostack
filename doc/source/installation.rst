@@ -6,7 +6,7 @@
 Installation
 ------------
 
-You can download the trollsift source code from github,::
+You can download the Halostack source code from github,::
 
   $ git clone https://github.com/pnuu/halostack.git
 
