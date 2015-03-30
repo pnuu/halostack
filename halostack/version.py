@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014 Panu Lahtinen
+# Copyright (c) 2014, 2015 Panu Lahtinen
 
 # Author(s):
 
