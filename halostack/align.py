@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014
+# Copyright (c) 2014, 2015 Panu Lahtinen
 
 # Author(s):
 
@@ -98,10 +98,10 @@ class Align(object):
     def _set_ref(self):
         '''Set reference values.
         '''
-        self.ref = self.img[self.ref_loc[0]-self.ref_loc[2]:\
-                                self.ref_loc[0]+self.ref_loc[2]+1,
-                            self.ref_loc[1]-self.ref_loc[2]:\
-                                self.ref_loc[1]+self.ref_loc[2]+1]
+        self.ref = self.img[self.ref_loc[1]-self.ref_loc[2]:\
+                                self.ref_loc[1]+self.ref_loc[2]+1,
+                            self.ref_loc[0]-self.ref_loc[2]:\
+                                self.ref_loc[0]+self.ref_loc[2]+1]
 
 
     def _find_reference(self, img):
