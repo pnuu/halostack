@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014
+# Copyright (c) 2014, 2015 Panu Lahtinen
 
 # Author(s):
 
@@ -450,7 +450,7 @@ class Image(object):
             # columns
             for j in range(shape[1]):
                 vect = np.mean(self.img[:, j, i]) +\
-                    np.zeros(2*radius+shape[1]-1)
+                    np.zeros(2*radius+shape[0]-1)
                 vect[radius:radius+shape[0]] = self.img[:, j, i]
                 vect_conv = np.convolve(vect, kernel, mode='full')
                 self.img[:, j, i] = vect_conv[2*radius:2*radius+shape[0]]
@@ -480,7 +480,7 @@ class Image(object):
                 self.img[j, :, i] = vect_conv[2*radius:2*radius+shape[1]]
             # columns
             for j in range(shape[1]):
-                vect = np.zeros(2*radius+shape[1]-1)
+                vect = np.zeros(2*radius+shape[0]-1)
                 vect[:radius] = np.mean(self.img[:radius, j, i])
                 vect[radius:radius+shape[0]] = self.img[:, j, i]
                 vect[-radius:] = np.mean(self.img[-radius:, j, i])
