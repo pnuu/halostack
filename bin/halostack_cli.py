@@ -117,7 +117,7 @@ def halostack_cli(args):
     LOGGER.info("Using %s as base image.", base_img.fname)
     images.remove(images[0])
 
-    if not args['no_alignment'] and len(images) > 0:
+    if not args['no_alignment'] and len(images) > 1:
         view_img = base_img.luminance()
         if isinstance(args['view_gamma'], float):
             view_img.enhance({'gamma': args['view_gamma']})
@@ -142,19 +142,22 @@ def halostack_cli(args):
         LOGGER.debug("Adding %s to %s stack", base_img.fname, stack.mode)
         stack.add_image(base_img)
 
-    LOGGER.debug("Initializing alignment.")
-    aligner = Align(base_img, ref_loc=args['focus_reference'],
-                    srch_area=args['focus_area'],
-                    cor_th=args['correlation_threshold'])
-    LOGGER.info("Alignment initialized.")
+    if not args['no_alignment'] and len(images) > 1:
+        LOGGER.debug("Initializing alignment.")
+        aligner = Align(base_img, ref_loc=args['focus_reference'],
+                        srch_area=args['focus_area'],
+                        cor_th=args['correlation_threshold'])
+        LOGGER.info("Alignment initialized.")
 
     for img in images:
         # Read image
         LOGGER.info("Reading %s.", img)
         img = Image(fname=img, enhancements=args['enhance_images'])
-        # align image
-        LOGGER.info("Aligning image.")
-        img = aligner.align(img)
+
+        if not args['no_alignment'] and len(images) > 1:
+            # align image
+            LOGGER.info("Aligning image.")
+            img = aligner.align(img)
 
         if img is None:
             LOGGER.warning("Threshold was below threshold, skipping image.")
@@ -169,8 +172,8 @@ def halostack_cli(args):
         img = stacks[i].calculate()
         LOGGER.info("Saving %s stack to %s.", stacks[i].mode,
                     args['stack_fnames'][i])
-        img.enhance(args['enhance_stacks'])
-        img.save(args['stack_fnames'][i])
+        img.save(args['stack_fnames'][i],
+                 enhancements=args['enhance_stacks'])
 
 def main():
     '''Main. Only commandline and config file parsing is done here.'''
@@ -212,6 +215,8 @@ def main():
     parser.add_argument("-c", "--config_item", dest="config_item",
                         metavar="STR", default=None,
                         help="Config item to select parameters")
+    parser.add_argument("-l", "--loglevel", dest="loglevel", metavar="LOGLEVEL",
+                        type=str, default="INFO", help="Set level of shown messages")
     parser.add_argument('fname_in', metavar="FILE", type=str, nargs='*',
                         help='List of files')
 

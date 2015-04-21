@@ -29,8 +29,24 @@ LOGGER = logging.getLogger(__name__)
 
 class Align(object):
     '''Class to coalign images
+
+    :param img: reference image
+    :type img: halostack.image
+    :param ref_loc: reference location
+    :type ref_loc: 3-tuple or None
+    :param srch_area: reference search area
+    :type srch_area: 3-tuple or None
+    :param cor_th: correlation threshold
+    :type cor_the: float
+    :param mode: alignment method
+    :type mode: str
+
+    Available alignment methods are::
+
+    'simple'
     '''
-    def __init__(self, img, ref_loc=None, srch_area=None, cor_th=0.0,
+
+    def __init__(self, img, ref_loc=None, srch_area=None, cor_th=70.0,
                  mode='simple'):
 
         LOGGER.info("Initiliazing aligner using %s mode.", mode)
@@ -58,7 +74,9 @@ class Align(object):
 
     def set_reference(self, area):
         '''Set the reference area *area*.
-        param area: 3-tuple of the form (x, y, radius)
+
+        :param area: 3-tuple of the form (x, y, radius)
+        :type area: list or tuple
         '''
         LOGGER.debug("Setting reference location: (%d, %d), radius: %d.",
                      area[0], area[1], area[2])
@@ -67,7 +85,9 @@ class Align(object):
 
     def set_search_area(self, area):
         '''Set the reference search area *area*.
-        param area: 4-tuple of the form (x1, x2, y1, y2)
+
+        :param area: 4-tuple of the form (x1, x2, y1, y2)
+        :type area: list or tuple
         '''
         LOGGER.debug("Setting search area to (%d, %d) - (%d, %d).",
                      area[0], area[1], area[2], area[3])
@@ -76,6 +96,9 @@ class Align(object):
 
     def align(self, img):
         '''Align the given image with the reference image.
+
+        :param img: image to align with the reference
+        :type img: halostack.image.Image
         '''
         LOGGER.info("Calculating image alignment.")
         # Get the correlation and the location of the best match

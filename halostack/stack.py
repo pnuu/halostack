@@ -29,7 +29,20 @@ from halostack.image import Image
 LOGGER = logging.getLogger(__name__)
 
 class Stack(object):
-    '''Class for image stacks'''
+    '''Class for image stacks.
+
+    :param mode: type of the stack
+    :type mode: str
+    :param num: maximum number of images to be added
+    :type num: int
+
+    Available stack types are::
+
+    'min' - minimum stack
+    'max' - maximum stack
+    'mean' - average stack
+    'median' - median stack
+    '''
 
     def __init__(self, mode, num):
         LOGGER.debug("Initializing %s stack for %d images.",
@@ -53,7 +66,11 @@ class Stack(object):
 
     def add_image(self, img):
         '''Add a frame to the stack.
+
+        :param img: image to be added to stack
+        :type img: halostack.image.Image
         '''
+
         if not isinstance(img, Image):
             LOGGER.debug("Converting %s to Image object.", img)
             img = Image(img=img)
@@ -62,6 +79,8 @@ class Stack(object):
 
     def calculate(self):
         '''Calculate the result image and return Image object.
+
+        :rtype: halostack.image.Image
         '''
         if self._calculate_func is None:
             return self.stack

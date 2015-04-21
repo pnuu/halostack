@@ -31,7 +31,15 @@ import logging
 LOGGER = logging.getLogger(__name__)
 
 class Image(object):
-    '''Image class'''
+    '''Class for handling images.
+
+    :param img: array holding image data
+    :type img: ndarray or None
+    :param fname: image filename
+    :type fname: str or None
+    :param enhancements: image processing applied to the image
+    :type enhancements: dictionary or None
+    '''
 
     def __init__(self, img=None, fname=None, enhancements=None):
         self.img = img
@@ -136,7 +144,7 @@ class Image(object):
         self.img = PMImage(self.fname)
 
     def to_numpy(self):
-        '''Convert from PMImage to numpy.
+        '''Convert from PMImage to Numpy ndarray.
         '''
         self._to_numpy()
 
@@ -153,7 +161,17 @@ class Image(object):
 
     def save(self, fname, bits=16, scale=True, enhancements=None):
         '''Save the image data.
+
+        :param fname: output filename
+        :type fname: str
+        :param bits: output bit-depth
+        :type bits: int
+        :param scale: scale image values to cover *bits* bit-depth
+        :type scale: boolean
+        :param enhancements: image processing applied to the image before saving
+        :type enhancements: dictionary or None
         '''
+
         if enhancements:
             self.enhance(enhancements)
         if scale:
@@ -163,24 +181,36 @@ class Image(object):
 
     def min(self):
         '''Return the minimum value in the image.
+
+        :rtype: float
         '''
         self._to_numpy()
         return np.min(self.img)
 
     def max(self):
         '''Return the maximum value in the image.
+
+        :rtype: float
         '''
         self._to_numpy()
         return np.max(self.img)
 
     def astype(self, dtype):
-        '''Return the image with the given dtype.
+        '''Return the image as Numpy array with the given dtype.
+
+        :param dtype: data type
+        :type dtype: numpy dtype
+        :rtype: Numpy ndarray
         '''
+        self._to_numpy()
         return Image(img=self.img.astype(dtype))
 
     def luminance(self):
-        '''Return luminance (channel average).
+        '''Return luminance (channel average) as Numpy ndarray.
+
+        :rtype: Numpy ndarray
         '''
+        self._to_numpy()
         if len(self.img.shape) == 3:
             return Image(img=np.mean(self.img, 2))
         else:
@@ -188,7 +218,111 @@ class Image(object):
 
     def enhance(self, enhancements):
         '''Enhance the image with the given function(s) and argument(s).
+
+        :param enhancements: image processing methods
+        :type enhancements: dictionary
+
+        Available image processing methods:
+
+        * ``br``: Blue - Red
+
+          * possible calls:
+
+            * ``{'br': None}``
+            * ``{'br': float}``
+
+          * optional arguments:
+
+            * ``float``: multiplier for blue channel [``mean(red/green)``]
+
+        * ``emboss``: emboss image using *ImageMagick*
+
+          * possible calls:
+
+            * ``{'emboss': None}``
+            * ``{'emboss': float}``
+            * ``{'emboss': [float, float]}``
+
+          * optional arguments:
+
+            * ``float``: light source azimuth in degrees [``90``]
+            * ``float``: light source elevation in degrees [``45``]
+
+        * ``gamma``: gamma correction using *ImageMagick*
+
+          * possible calls:
+
+            * ``{'gamma': float}``
+
+          * required arguments:
+
+            * ``float``: gamma value
+
+        * ``gradient``: remove image gradient
+
+          * possible calls:
+
+            * ``{'gradient': None}``
+            * ``{'gradient': float}``
+
+          * optional arguments:
+
+            * ``float`` (blur radius) [``min(image dimensions)/20``]
+
+        * ``rg``: Red - Green
+
+          * possible calls:
+
+            * ``{'rg': None}``
+            * ``{'rg': float}``
+
+          * optional arguments:
+
+            * ``float``: multiplier for red channel [``mean(red/green)``]
+
+        * ``rgb_sub``: Subtract luminance from each color channel
+
+          * possible calls:
+
+            ``{'rgb_sub': None}``
+
+        * ``stretch``: linear histogram stretch
+
+          * possible calls:
+
+            * ``{'stretch': [int]}``
+            * ``{'stretch': [int, float]}``
+            * ``{'stretch': [int, float, float]}``
+
+          * required arguments:
+
+            * ``int``: bit depth
+
+          * optional arguments:
+
+            * ``float``: low cut threshold [``0.05``]
+            * ``float``: high cut threshold [``0.05``]
+
+        * ``usm``: unsharp mask using *ImageMagick*
+
+          * possible calls:
+
+            * ``{'usm': [float, float]}``
+            * ``{'usm': [float, float, float]}``
+            * ``{'usm': [float, float, float, float]}``
+
+          * required arguments:
+
+            * ``float``: radius
+            * ``float``: amount
+
+          * optional arguments:
+
+            * ``float``: standard deviation of the gaussian [``sqrt(radius)``]
+            * ``float``: threshold [``0``]
+
         '''
+
         functions = {'usm': self._usm,
                      'emboss': self._emboss,
                      'blur': self._blur3,
@@ -208,6 +342,7 @@ class Image(object):
         '''Calculate channel difference: chan1 * multiplier - chan2.
         '''
         self._to_numpy()
+        self.img = self.img.astype(np.float)
         chan1 = self.img[:, :, chan1].copy()
         chan2 = self.img[:, :, chan2].copy()
         if multiplier is None:
@@ -293,7 +428,7 @@ class Image(object):
 
     def _calculate_gradient(self, args):
         '''Calculate gradient from the image using the given method.
-        param method: name of the method for calculating the gradient
+        :param method: name of the method for calculating the gradient
         '''
         methods = {'blur': self._gradient_blur,
                    'random': self._gradient_random_points,
@@ -432,6 +567,8 @@ class Image(object):
         row. Data borders are padded with mean of the data before
         convolution to reduce the edge effects.
         '''
+        self._to_numpy()
+
         shape = self.img.shape
         if args is None:
             radius = int(np.min(shape[:2])/20.)
@@ -462,6 +599,8 @@ class Image(object):
         row. Data borders are padded with mean of the border area
         before convolution to reduce the edge effects.
         '''
+        self._to_numpy()
+
         shape = self.img.shape
         if args is None:
             radius = int(np.min(shape[:2])/20.)
@@ -497,6 +636,10 @@ class Image(object):
 
 def to_numpy(img):
     '''Convert ImageMagick data to numpy array.
+
+    :param img: image to convert
+    :type img: PythonMagick.Image
+    :rtype: Numpy ndarray
     '''
     if not isinstance(img, np.ndarray):
         LOGGER.debug("Converting from ImageMagick to Numpy.")
@@ -515,6 +658,10 @@ def to_numpy(img):
 
 def to_imagemagick(img):
     '''Convert numpy array to Imagemagick format.
+
+    :param img: image to convert
+    :type img: Numpy ndarray
+    :rtype: PythonMagick.Image
     '''
 
     if not isinstance(img, PMImage):
@@ -548,8 +695,19 @@ def polyfit2d(x_loc, y_loc, z_val, order=2):
     '''Fit a 2-D polynomial to the given data.
 
     Implementation from: http://stackoverflow.com/a/7997925
+
+    :param x_loc: X coordinates
+    :type x_loc: list or ndarray
+    :param y_loc: Y coordinates
+    :type y_loc: list or ndarray
+    :param z_val: Z values at (X, Y)
+    :type z_val: list or ndarray
+    :param order: order of the polynomial
+    :type order: integer
+    :rtype: list of polynomial coefficients as floats
     '''
-    LOGGER.debug("2D polynomial fit")
+
+    LOGGER.debug("Calculating 2D polynomial fit.")
     ncols = (order + 1)**2
     g_mat = np.zeros((x_loc.size, ncols))
     ij_loc = itertools.product(range(order+1), range(order+1))
@@ -562,8 +720,16 @@ def polyval2d(x_loc, y_loc, poly):
     '''Evaluate 2-D polynomial *poly* at the given locations
 
     Implementation from: http://stackoverflow.com/a/7997925
+
+    :param x_loc: X coordinates
+    :type x_loc: list or Numpy array
+    :param y_loc: Y coordinates
+    :type y_loc: list or Numpy array
+    :param poly: polynomial coefficients
+    :type poly: list of floats
+
     '''
-    LOGGER.debug("Evaluate 2D polynomial.")
+    LOGGER.debug("Evaluating 2D polynomial.")
     order = int(np.sqrt(len(poly))) - 1
     ij_loc = itertools.product(range(order+1), range(order+1))
     surf = np.zeros_like(x_loc)

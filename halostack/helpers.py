@@ -33,6 +33,10 @@ LOGGER = logging.getLogger(__name__)
 
 def get_filenames(fnames):
     '''Get filenames to a list. Expand wildcards etc.
+
+    :param fnames: list of filenames or wildcard strings
+    :type fnames: list of strings
+    :rtype: list of strings
     '''
 
     fnames_out = []
@@ -53,9 +57,17 @@ def get_filenames(fnames):
 
 def parse_enhancements(params):
     '''Parse image enhancements and their parameters, if any.
+
+    :param params: list of enhancement names and parameters
+    :type params: list of strings
+    :rtype: ordered dictionary
+
+    example of *params*: ['usm:20,8', 'br']
     '''
+
     output = od()
-    LOGGER.debug("Parsing enhancements.")
+    if len(params) > 0:
+        LOGGER.debug("Parsing enhancements.")
     for param in params:
         param = param.split(":")
         if len(param) > 1:
@@ -79,7 +91,12 @@ def get_two_points(img_in):
     '''Get two image pixel coordinates from users' clicks on the
     image, and return them as 3-tuple:
     (mean(xs), mean(ys), max(abs_diff(xs), abs_diff(ys))/2.
+
+    :param img_in: input image
+    :type img_in: Numpy array
+    :rtype: 3-tuple
     '''
+
     x_cs, y_cs = get_image_coordinates(img_in, 2)
 
     return (int(np.ceil(np.mean(x_cs))),
@@ -89,7 +106,13 @@ def get_two_points(img_in):
 
 def get_image_coordinates(img_in, num):
     '''Get *num* image coordinates from users' clicks on the image.
+
+    :param img_in: input image
+    :type img_in: Numpy array
+    :param num: number of coordinates to collect
+    :type num: int
     '''
+
     img = img_in.img.copy()
     if img.dtype != 'uint8':
         img -= np.min(img)
@@ -114,7 +137,12 @@ def get_image_coordinates(img_in, num):
 def read_config(args):
     '''Read and parse configuration from a file given in *args* and
     update the argument dictionary.
+
+    :param args: command-line arguments
+    :type args: dictionary
+    :rtype: dictionary with updated arguments
     '''
+
     fname = args['config_file']
     LOGGER.info("Reading configuration file %s.", fname)
     config_item = args.get(args, 'config_item', 'default')
@@ -124,6 +152,7 @@ def read_config(args):
 
     cfg = dict(config.items(config_item))
     for itm in cfg.items():
-        args[itm] = cfg[itm]
+        if itm not in args:
+            args[itm] = cfg[itm]
 
     return args
