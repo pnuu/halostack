@@ -353,7 +353,9 @@ class Image(object):
                 multiplier = 2
             else:
                 multiplier = np.mean(chan2[idxs]/chan1[idxs])
-
+        else:
+            if isinstance(multiplier, list):
+                multiplier = multiplier[0]
         LOGGER.debug("Multiplier: %.3lf", multiplier)
         self.img = multiplier * chan1 - chan2
 
