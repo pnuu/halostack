@@ -153,8 +153,9 @@ class Image(object):
     def _to_numpy(self):
         '''Convert from PMImage to numpy.
         '''
-        self.img = to_numpy(self.img).astype(np.float64)
-        self.shape = self.img.shape
+        if isinstance(self.img, PMImage):
+            self.img = to_numpy(self.img).astype(np.float64)
+            self.shape = self.img.shape
 
     def _to_imagemagick(self):
         '''Convert from numpy to PMImage.
