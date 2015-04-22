@@ -123,11 +123,11 @@ class TestImage(unittest.TestCase):
         img._blue_red_subtract(1)
         self.assertItemsEqual(self.img3.img, img.img)
         img = 1*self.img_rgb
-        img._red_green_subtract(2)
-        self.assertItemsEqual(self.img1.img, img.img)
+        img._green_red_subtract(2)
+        self.assertItemsEqual(self.img4.img, img.img)
         img = 1*self.img_rgb
-        img._red_green_subtract(None)
-        self.assertItemsEqual(-1.5*self.img2.img, img.img)
+        img._green_red_subtract(None)
+        self.assertItemsEqual(self.img4.img, img.img)
 
     def test_rgb_subtract(self):
         img = 1*self.img_rgb

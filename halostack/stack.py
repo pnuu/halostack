@@ -96,7 +96,7 @@ class Stack(object):
         '''Update average stack
         '''
         if self.stack is None:
-            self.stack = img.astype(np.float)
+            self.stack = img
         else:
             self.stack += img
 

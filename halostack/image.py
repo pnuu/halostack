@@ -90,6 +90,7 @@ class Image(object):
 
     def __div__(self, img):
         if isinstance(img, Image):
+            self._to_numpy()
             img.to_numpy()
             return Image(img=self.img/img.img)
         else:
@@ -141,6 +142,7 @@ class Image(object):
     def _read(self):
         '''Read the image.
         '''
+        LOGGER.info("Reading image %s.", self.fname)
         self.img = PMImage(self.fname)
 
     def to_numpy(self):
@@ -151,7 +153,7 @@ class Image(object):
     def _to_numpy(self):
         '''Convert from PMImage to numpy.
         '''
-        self.img = to_numpy(self.img)
+        self.img = to_numpy(self.img).astype(np.float64)
         self.shape = self.img.shape
 
     def _to_imagemagick(self):
@@ -194,16 +196,6 @@ class Image(object):
         '''
         self._to_numpy()
         return np.max(self.img)
-
-    def astype(self, dtype):
-        '''Return the image as Numpy array with the given dtype.
-
-        :param dtype: data type
-        :type dtype: numpy dtype
-        :rtype: Numpy ndarray
-        '''
-        self._to_numpy()
-        return Image(img=self.img.astype(dtype))
 
     def luminance(self):
         '''Return luminance (channel average) as Numpy ndarray.
@@ -269,16 +261,16 @@ class Image(object):
 
             * ``float`` (blur radius) [``min(image dimensions)/20``]
 
-        * ``rg``: Red - Green
+        * ``gr``: Green - Red
 
           * possible calls:
 
-            * ``{'rg': None}``
-            * ``{'rg': float}``
+            * ``{'gr': None}``
+            * ``{'gr': float}``
 
           * optional arguments:
 
-            * ``float``: multiplier for red channel [``mean(red/green)``]
+            * ``float``: multiplier for red channel [``mean(green/red)``]
 
         * ``rgb_sub``: Subtract luminance from each color channel
 
@@ -286,22 +278,30 @@ class Image(object):
 
             ``{'rgb_sub': None}``
 
+        * ``rgb_mix``: Subtract luminance from each color channel and mix it
+          back to the original image
+
+          * possible calls:
+
+            ``{'rgb_mix': None}``
+            ``{'rgb_mix': float}``
+
+          * optional arguments:
+
+            * ``float``: mixing ratio [``0.7``]
+
         * ``stretch``: linear histogram stretch
 
           * possible calls:
 
-            * ``{'stretch': [int]}``
-            * ``{'stretch': [int, float]}``
-            * ``{'stretch': [int, float, float]}``
-
-          * required arguments:
-
-            * ``int``: bit depth
+            * ``{'stretch': None}``
+            * ``{'stretch': float}``
+            * ``{'stretch': [float, float]}``
 
           * optional arguments:
 
-            * ``float``: low cut threshold [``0.05``]
-            * ``float``: high cut threshold [``0.05``]
+            * ``float``: low cut threshold [``0.01``]
+            * ``float``: high cut threshold [``1 - <low cut threshold>``]
 
         * ``usm``: unsharp mask using *ImageMagick*
 
@@ -328,13 +328,14 @@ class Image(object):
                      'blur': self._blur3,
                      'gamma': self._gamma,
                      'br': self._blue_red_subtract,
-                     'rg': self._red_green_subtract,
+                     'gr': self._green_red_subtract,
                      'rgb_sub': self._rgb_subtract,
+                     'rgb_mix': self._rgb_mix,
                      'gradient': self._remove_gradient,
                      'stretch': self._stretch}
 
         for key in enhancements:
-            LOGGER.info("Apply %s.", key)
+            LOGGER.info("Apply method \"%s\".", key)
             func = functions[key]
             func(enhancements[key])
 
@@ -342,83 +343,133 @@ class Image(object):
         '''Calculate channel difference: chan1 * multiplier - chan2.
         '''
         self._to_numpy()
-        self.img = self.img.astype(np.float)
         chan1 = self.img[:, :, chan1].copy()
         chan2 = self.img[:, :, chan2].copy()
         if multiplier is None:
-            idxs = np.logical_and(chan1 > 0, chan2 > 0)
-            multiplier = np.mean(chan1[idxs]/chan2[idxs])
+            idxs = np.logical_and(np.logical_and(1.5*chan1 < chan2,
+                                                 2.5*chan1 > chan2),
+                                  chan1 > 0)
+            if np.all(np.invert(idxs)):
+                multiplier = 2
+            else:
+                multiplier = np.mean(chan2[idxs]/chan1[idxs])
+
+        LOGGER.debug("Multiplier: %.3lf", multiplier)
         self.img = multiplier * chan1 - chan2
 
     def _blue_red_subtract(self, args):
         '''Subtract red channel from the blue channel after scaling
         the blue channel using the supplied multiplier.
         '''
-        LOGGER.debug("Calculating channel difference, blue-red.")
+        LOGGER.debug("Calculating channel difference, Blue - Red.")
         self._channel_difference(2, 0, multiplier=args)
 
-    def _red_green_subtract(self, args):
-        '''Subtract green channel from the red channel after scaling
-        the red channel using the supplied multiplier.
+    def _green_red_subtract(self, args):
+        '''Subtract red channel from the green channel after scaling
+        the green channel using the supplied multiplier.
         '''
-        LOGGER.debug("Calculating channel difference, red-green.")
-        self._channel_difference(0, 1, multiplier=args)
+        LOGGER.debug("Calculating channel difference, Green - Red.")
+        self._channel_difference(1, 0, multiplier=args)
 
     def _rgb_subtract(self, args):
-        '''Subtract the mean(r,g,b) from all the channels.
+        '''Subtract mean(r,g,b) from all the channels.
         '''
         LOGGER.debug("Subtracting luminance from all color channels.")
         del args
         self._to_numpy()
-        self.img = self.img.astype(np.float)
         luminance = self.luminance().img
         for i in range(3):
             self.img[:, :, i] -= luminance
         self.img -= self.img.min()
 
+    def _rgb_mix(self, args):
+        '''Subtract mean(r,g,b) from all the channels, and blend it
+        back to the original image.
+
+        :param args: mixing factor [0.7]
+        :type args: float
+        '''
+
+        if args is None:
+            args = 0.7
+        else:
+            args = args[0]
+
+        LOGGER.debug("Generating RGB mix.")
+        LOGGER.debug("Mixing factor: %.2lf", args)
+        self._to_numpy()
+        img = Image(img=self.img.copy())
+        img.enhance({'rgb_sub': None})
+
+        self.img *= (1-args)
+        self.img += args * img.img
+
     def _stretch(self, args):
         '''Apply a linear stretch to the image.
         '''
+
         self._to_numpy()
-        # args = [bits, low_cut, high_cut]
+        self.img -= self.img.min()
+
+        if args is None:
+            args = []
+        if not isinstance(args, list):
+            args = [args]
+        if len(args) == 0:
+            args.append(0.01)
         if len(args) == 1:
-            args.append(0.05)
-        if len(args) == 2:
-            args.append(0.05)
+            args.append(1-args[0])
+
         LOGGER.debug("Applying linear stretch.")
-        LOGGER.debug("%d bits, low cut: %.2f %%, high cut: %.2f %%",
-                     args[0], args[1], args[2])
+        LOGGER.debug("low cut: %.0f %%, high cut: %.0f %%",
+                     100*args[0], 100*args[1])
+
+        hist_num_points = 2**16 - 1
+
         # Use luminance
-        lumin = np.mean(self.img, 2)
-        lumin -= np.min(lumin)
-        lumin = (2**args[0]-1)*lumin/np.max(lumin)
+        if len(self.img.shape) == 3:
+            lumin = np.mean(self.img, 2)
+        else:
+            lumin = self.img.copy()
 
-        hist, _ = np.histogram(lumin.flatten(), 2**args[0]-1,
+        # histogram
+        hist, _ = np.histogram(lumin.flatten(), hist_num_points,
                                normed=True)
-        cdf = hist.cumsum() # cumulative distribution function
-        cdf = (2**args[0]-1) * cdf / cdf[-1] # normalize
+        # cumulative distribution function
+        cdf = hist.cumsum()
+        # normalize to image maximum
+        cdf = self.img.max() * cdf / cdf[-1]
 
+        # find lower end truncation point
         start = 0
         csum = 0
-        while csum < (2**args[0]-1)*args[1]:
-            csum += cdf[start]
+        while csum < cdf[-1]*args[0]:
+            csum = cdf[start]
             start += 1
-        end = 2**args[0]-1
-        csum = 0
-        while csum < (2**args[0]-1)*args[2]:
-            csum += (cdf[-1]-cdf[end])
+        # higher end truncation point
+        end = cdf.size - 1
+        csum = cdf[-1]
+        while csum > cdf[-1]*args[1]:
+            csum = cdf[end]
             end -= 1
 
-        self.img -= start
-        self.img = (2**args[0]-1)*self.img/(end-start)
+        LOGGER.debug("Truncation points: %d and %d", start, end)
+
+        # calculate the corresponding data values
+        start_val = start * self.img.max() / hist_num_points
+        end_val = end * self.img.max() / hist_num_points
+
+        # truncate
+        self.img[self.img < start_val] = start_val
+        self.img[self.img > end_val] = end_val
+
 
     def _remove_gradient(self, args):
         '''Calculate the gradient from the image, subtract from the
         original, scale back to full bit depth and return the result.
         '''
-        self._to_numpy()
         LOGGER.debug("Removing gradient.")
-        self.img = self.img.astype(np.float)
+        self._to_numpy()
         args = {'method': {'blur': args}}
         gradient = self._calculate_gradient(args)
         self.img -= gradient.img
@@ -511,16 +562,17 @@ class Image(object):
     def _scale(self, *args):
         '''Scale image to cover the whole bit-range.
         '''
+
         self._to_numpy()
-        img = 1.0*self.img - np.min(self.img)
+        img = self.img - self.img.min()
         img_max = np.max(img)
         if img_max != 0:
             img = (2**args[0] - 1) * img / img_max
         if args[0] <= 8:
-            LOGGER.info("Fitting the image to 8-bits.")
+            LOGGER.info("Scaling the image to 8-bits.")
             self.img = img.astype('uint8')
         else:
-            LOGGER.info("Fitting the image to 16-bits.")
+            LOGGER.info("Scaling the image to 16-bits.")
             self.img = img.astype('uint16')
 
     def _rotate(self, *args):
@@ -531,27 +583,33 @@ class Image(object):
         LOGGER.error("Image rotation not implemented.")
 
     def _usm(self, args):
-        '''Unsharp mask sharpen the image.
+        '''Use unsharp mask to enhance the image contrast.  Uses ImageMagick.
         '''
-        LOGGER.debug("Apply unsharp mask.")
+
         self._to_imagemagick()
         if len(args) == 2:
             args.append(np.sqrt(args[0]))
         if len(args) == 3:
             args.append(0)
+        LOGGER.debug("Apply unsharp mask.")
+        LOGGER.debug("Radius: %.0lf, amount: %.1lf, "
+                     "sigma: %.1lf, threshold: %.0lf.", args[0], args[1],
+                     args[2], args[3])
         self.img.unsharpmask(*args)
 
     def _emboss(self, args):
         '''Emboss filter the image. Actually uses shade() from
         ImageMagick.
         '''
-        LOGGER.debug("Apply emboss.")
+
         if args is None:
             args = []
         if len(args) == 0:
             args.append(90)
         if len(args) == 1:
             args.append(45)
+        LOGGER.debug("Apply emboss.")
+        LOGGER.debug("Azimuth: %.1lf, elevation: %.1lf.", args[0], args[1])
         self._to_imagemagick()
         self.img.shade(*args)
 
@@ -605,8 +663,9 @@ class Image(object):
         if args is None:
             radius = int(np.min(shape[:2])/20.)
         else:
-            radius = args[0] # args['radius']
+            radius = args[0]
 
+        LOGGER.debug("Blur radius is %.0lf pixels.", radius)
         kernel = np.ones(2*radius)/(2*radius)
         for i in range(shape[-1]):
             # rows
@@ -632,6 +691,7 @@ class Image(object):
         '''Apply gamma correction to the image.
         '''
         self._to_imagemagick()
+        LOGGER.debug("Apply gamma correction, gamma: %.2lf.", args[0])
         self.img.gamma(args[0])
 
 def to_numpy(img):
@@ -673,7 +733,7 @@ def to_imagemagick(img):
             out_img.depth(16)
 
         shape = img.shape
-        # Save also B&W images as RGB
+        # Convert also B&W images to 3-channel arrays
         if len(shape) == 2:
             tmp = np.empty((shape[0], shape[1], 3), dtype=img.dtype)
             tmp[:, :, 0] = img

@@ -4,7 +4,8 @@
    contain the root `toctree` directive.
 
 .. meta::
-   :description: Halostack project, modules for stacking, enhancing and saving images of ice-crystal halos
+   :description: Halostack project, modules for stacking, enhancing
+                 and saving images of ice-crystal halos
    :keywords: Python, ice-crystal halos, image stacking, image enhancement
 
 Welcome to the halostack documentation!
