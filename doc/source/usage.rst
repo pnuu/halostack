@@ -337,9 +337,10 @@ RGB mixing
 ++++++++++
 
 To augment the Luminance subtraction, it is also possible to directly
-mix the luminance subtracted image with the original image.  The
-mixing ratio can be given, and if omitted, value of ``f = 0.7`` is
-used.
+mix the luminance subtracted image with the original image to generate
+more "eye friendly" and natural looking images that show colorful
+halos better.  The mixing ratio can be given, and if omitted, value of
+``f = 0.7`` is used.
 
 ``image = (1-f) * original + f * rgb_sub``
 
