@@ -53,4 +53,3 @@ Image enhancements
 - flat correction
 
   - for dust and vignetting removal
-

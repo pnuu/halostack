@@ -49,6 +49,9 @@ area, and that image will not be used in the stack.  Or even worse,
 there's a similar area with good enough correlation and that feature
 is selected, ruining the whole stack.
 
+Alignment can benefit from multiple processors, see ``-p``
+command-line option.
+
 
 Command-line options
 ____________________
@@ -79,13 +82,14 @@ ____________________
 
   - ``-t 0.9``
   - minimum required correlation
-  - default: 0.7
+  - default: ``0.7``
 
 - ``-s, --save-images``
 
   - ``-s aligned_images_``
   - save aligned images as PNG with the given filename prefix
-  - this will save the images with filenames like ``aligned_images_IMG_0001.png`` etc.
+  - this will save the images with filenames like
+    ``aligned_images_IMG_0001.png`` etc.
 
 - ``-n, --no-alignment``
 
@@ -96,7 +100,8 @@ ____________________
 - ``-e, --enhance-images``
 
   - ``-e gradient:20``
-  - enhancement functions applied to each input image before alignment and stacking
+  - enhancement functions applied to each input image before alignment
+    and stacking
   - can be called several times
   - processing is done in the given order
 
@@ -111,7 +116,7 @@ ____________________
 
   - ``-g 1.5``
   - adjust image gamma for alignment preview
-  - default: 1.0
+  - default: ``1.0``
 
 - ``-C, --config``
 
@@ -130,6 +135,18 @@ ____________________
   - ``-l warning``
   - ``-l error``
   - set the level of messages
+
+- ``-p, --nprocs``
+
+  - ``-p <num>``
+  - ``-p 4``
+  - set number of processors to use in computationally intensive tasks
+    such as
+    
+    - alignment
+    - gradient removal (blurring)
+
+  - default: ``1``
 
 - ``<list of filenames>``
 
@@ -317,6 +334,9 @@ the smaller image dimension::
 The radius can be given as a parameter::
 
   gradient:50
+
+Gradient removal benefits from using multiple processors, see ``-p``
+command-line parameter.
 
 Also other methods for gradient removal are implemented, but they are
 not currently exposed via the command-line client.

@@ -9,9 +9,9 @@ class TestStack(unittest.TestCase):
     def setUp(self):
         self.median = Stack('median', 3)
 
-        self.img1 = Image(img=np.zeros((3, 3, 3), dtype=np.uint8))
-        self.img2 = Image(img=np.zeros((3, 3, 3), dtype=np.uint8)+1)
-        self.img3 = Image(img=np.zeros((3, 3, 3), dtype=np.uint8)+2)
+        self.img1 = Image(img=np.zeros((3, 3, 3), dtype=np.float))
+        self.img2 = Image(img=np.zeros((3, 3, 3), dtype=np.float)+1)
+        self.img3 = Image(img=np.zeros((3, 3, 3), dtype=np.float)+2)
 
     def test_min_stack(self):
         stack = Stack('min', 2)

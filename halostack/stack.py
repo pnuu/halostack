@@ -44,11 +44,12 @@ class Stack(object):
     'median' - median stack
     '''
 
-    def __init__(self, mode, num):
+    def __init__(self, mode, num, nprocs=1):
         LOGGER.debug("Initializing %s stack for %d images.",
                      mode, num)
         self.stack = None
         self.mode = mode
+        self.nprocs = nprocs
         self._mode_functions = {'min': {'update': self._update_min,
                                         'calc': None},
                                 'max': {'update': self._update_max,
@@ -73,7 +74,7 @@ class Stack(object):
 
         if not isinstance(img, Image):
             LOGGER.debug("Converting %s to Image object.", img)
-            img = Image(img=img)
+            img = Image(img=img, nprocs=self.nprocs)
 
         self._update_stack(img)
 
@@ -159,7 +160,7 @@ class Stack(object):
         img[:, :, 1] = ch_g.astype(self.stack['G'].dtype)
         img[:, :, 2] = ch_b.astype(self.stack['B'].dtype)
 
-        return Image(img=img)
+        return Image(img=img, nprocs=self.nprocs)
 
     def _calculate_sigma(self):
         '''Calculate the sigma-reject average of the stack and return

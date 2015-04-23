@@ -111,9 +111,10 @@ def halostack_cli(args):
 
     stacks = []
     for stack in args['stacks']:
-        stacks.append(Stack(stack, len(images)))
+        stacks.append(Stack(stack, len(images), nprocs=args['nprocs']))
 
-    base_img = Image(fname=images[0], enhancements=args['enhance_images'])
+    base_img = Image(fname=images[0], enhancements=args['enhance_images'],
+                     nprocs=args['nprocs'])
     LOGGER.info("Using %s as base image.", base_img.fname)
     images.remove(images[0])
 
@@ -131,7 +132,7 @@ def halostack_cli(args):
         print "Click two corner points for the area where alignment "\
             "reference will be in every image."
         args['focus_area'] = get_two_points(view_img)
-        print args['focus_area']
+
         LOGGER.info("User-selected search area: (%d, %d) with radius %d.",
                     args['focus_area'][0],
                     args['focus_area'][1],
@@ -146,13 +147,15 @@ def halostack_cli(args):
         LOGGER.debug("Initializing alignment.")
         aligner = Align(base_img, ref_loc=args['focus_reference'],
                         srch_area=args['focus_area'],
-                        cor_th=args['correlation_threshold'])
+                        cor_th=args['correlation_threshold'],
+                        nprocs=args['nprocs'])
         LOGGER.info("Alignment initialized.")
 
     for img in images:
         # Read image
         LOGGER.info("Reading %s.", img)
-        img = Image(fname=img, enhancements=args['enhance_images'])
+        img = Image(fname=img, enhancements=args['enhance_images'],
+                    nprocs=args['nprocs'])
 
         if not args['no_alignment'] and len(images) > 1:
             # align image
@@ -217,6 +220,9 @@ def main():
                         help="Config item to select parameters")
     parser.add_argument("-l", "--loglevel", dest="loglevel", metavar="LOGLEVEL",
                         type=str, default="INFO", help="Set level of shown messages")
+    parser.add_argument("-p", "--nprocs", dest="nprocs", metavar="INT",
+                        type=int, default=1,
+                        help="Number of parallel processes")
     parser.add_argument('fname_in', metavar="FILE", type=str, nargs='*',
                         help='List of files')
 

@@ -24,6 +24,7 @@
 
 import numpy as np
 import logging
+from multiprocessing import Pool
 
 LOGGER = logging.getLogger(__name__)
 
@@ -40,6 +41,8 @@ class Align(object):
     :type cor_the: float
     :param mode: alignment method
     :type mode: str
+    :param nprocs: number or parallel processes used for finding best fit
+    :type nprocs: int
 
     Available alignment methods are::
 
@@ -47,7 +50,7 @@ class Align(object):
     '''
 
     def __init__(self, img, ref_loc=None, srch_area=None, cor_th=70.0,
-                 mode='simple'):
+                 mode='simple', nprocs=1):
 
         LOGGER.info("Initiliazing aligner using %s mode.", mode)
         modes = {'simple': self._simple_match}
@@ -56,6 +59,7 @@ class Align(object):
         self.ref_loc = ref_loc
         self.srch_area = srch_area
         self.correlation_threshold = cor_th
+        self.nprocs = nprocs
         self.ref = None
 
         try:
@@ -141,6 +145,23 @@ class Align(object):
         LOGGER.error("TODO: FFT alignment not implemented.")
 
 
+    def _parallel_search(self, img, xlims, ylims, ref_shp):
+        '''Search for the best match in parallel.
+        '''
+
+        pool = Pool(self.nprocs)
+        data = []
+        for i in range(xlims[0], xlims[1]):
+            xran = range(i-ref_shp[1], i+ref_shp[1]+1)
+            data.append((img[:, xran], ylims, self.ref))
+
+        result = pool.map(_simple_search_worker, data)
+        result = np.array(result)
+        idx = np.argmin(result[:, 0])
+
+        return [result[idx, 0], idx+xlims[0], int(result[idx, 1])]
+
+
     def _simple_match(self, img):
         '''Use least squared difference to find the best alignment. Slow.
         '''
@@ -149,9 +170,6 @@ class Align(object):
         # loop is from {x,y} - ref_{x,y} to {x,y} + ref_{x,y} so
         # divide reference dimensions by two
         ref_shp = [i/2 for i in self.ref.shape]
-
-        # Get floating point version of the image
-        img_f = 1.0 * img #.img.astype(np.float64)
 
         xlims = [self.srch_area[0]-self.srch_area[2],
                  self.srch_area[0]+self.srch_area[2]]
@@ -174,16 +192,9 @@ class Align(object):
                      xlims[0], xlims[1],
                      ylims[0], ylims[1])
 
-        best_res = [2**64, None, None]
-
-        LOGGER.debug("Searching for best match.")
-        for i in range(xlims[0], xlims[1]):
-            xran = range(i-ref_shp[1], i+ref_shp[1]+1)
-            for j in range(ylims[0], ylims[1]):
-                sqdif = ((img_f[j-ref_shp[0]:j+ref_shp[0]+1, xran] - \
-                              self.ref)**2).sum()
-                if sqdif < best_res[0]:
-                    best_res = [sqdif, i, j]
+        LOGGER.debug("Searching for best match using %d thread(s).",
+                     self.nprocs)
+        best_res = self._parallel_search(img, xlims, ylims, ref_shp)
 
         # Calculate correlation coeff for the best fit
         best_fit_data = img[best_res[2]-ref_shp[0]:best_res[2]+ref_shp[0]+1,
@@ -248,3 +259,30 @@ class Align(object):
 
         return (output_ranges[0], output_ranges[1],
                 input_ranges[0], input_ranges[1])
+
+
+def _simple_search_worker(data):
+    '''Worker function for alignment search.
+    '''
+
+    def _sum_of_squares(data):
+        '''Calculate sum of squares.
+
+        :param data: array of values
+        :type data: Numpy array
+        :rtype: float
+        '''
+        return (data**2).sum()
+
+    img = data[0]
+    lims = data[1]
+    ref = data[2]
+
+    ref_shp = [i/2 for i in ref.shape]
+    sqdiffs = 2**64 * np.ones(lims[1])
+    for j in range(lims[0], lims[1]):
+        sqdiffs[j] = _sum_of_squares(img[j-ref_shp[0]:j+ref_shp[0]+1, :] - ref)
+
+    idx = np.argmin(sqdiffs)
+
+    return [sqdiffs[idx], idx]

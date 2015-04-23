@@ -27,6 +27,7 @@ from PythonMagick import Blob
 import numpy as np
 import itertools
 import logging
+from multiprocessing import Pool
 
 LOGGER = logging.getLogger(__name__)
 
@@ -39,11 +40,15 @@ class Image(object):
     :type fname: str or None
     :param enhancements: image processing applied to the image
     :type enhancements: dictionary or None
+    :param nprocs: number or parallel processes
+    :type nprocs: int
     '''
 
-    def __init__(self, img=None, fname=None, enhancements=None):
+    def __init__(self, img=None, fname=None, enhancements=None,
+                 nprocs=1):
         self.img = img
         self.fname = fname
+        self.nprocs = nprocs
 
         if fname is not None:
             self._read()
@@ -55,10 +60,10 @@ class Image(object):
     def __add__(self, img):
         if isinstance(img, Image):
             img.to_numpy()
-            return Image(img=self.img+img.img)
+            return Image(img=self.img+img.img, nprocs=self.nprocs)
         else:
             # Assume a numpy array or scalar
-            return Image(img=self.img+img)
+            return Image(img=self.img+img, nprocs=self.nprocs)
 
     def __radd__(self, img):
         return self.__add__(img)
@@ -66,10 +71,10 @@ class Image(object):
     def __sub__(self, img):
         if isinstance(img, Image):
             img.to_numpy()
-            return Image(img=self.img-img.img)
+            return Image(img=self.img-img.img, nprocs=self.nprocs)
         else:
             # Assume a numpy array or scalar
-            return Image(img=self.img-img)
+            return Image(img=self.img-img, nprocs=self.nprocs)
 
     def __rsub__(self, img):
         return self.__sub__(img)
@@ -80,10 +85,10 @@ class Image(object):
     def __mul__(self, img):
         if isinstance(img, Image):
             img.to_numpy()
-            return Image(img=self.img*img.img)
+            return Image(img=self.img*img.img, nprocs=self.nprocs)
         else:
             # Assume a numpy array or scalar
-            return Image(img=self.img*img)
+            return Image(img=self.img*img, nprocs=self.nprocs)
 
     def __rmul__(self, img):
         return self.__mul__(img)
@@ -92,14 +97,14 @@ class Image(object):
         if isinstance(img, Image):
             self._to_numpy()
             img.to_numpy()
-            return Image(img=self.img/img.img)
+            return Image(img=self.img/img.img, nprocs=self.nprocs)
         else:
             # Assume a numpy array or scalar
-            return Image(img=self.img/img)
+            return Image(img=self.img/img, nprocs=self.nprocs)
 
     def __abs__(self):
         self._to_numpy()
-        return Image(img=np.abs(self.img))
+        return Image(img=np.abs(self.img), nprocs=self.nprocs)
 
     def __lt__(self, img):
         if isinstance(img, Image):
@@ -205,9 +210,9 @@ class Image(object):
         '''
         self._to_numpy()
         if len(self.img.shape) == 3:
-            return Image(img=np.mean(self.img, 2))
+            return Image(img=np.mean(self.img, 2), nprocs=self.nprocs)
         else:
-            return Image(img=self.img)
+            return Image(img=self.img, nprocs=self.nprocs)
 
     def enhance(self, enhancements):
         '''Enhance the image with the given function(s) and argument(s).
@@ -326,6 +331,7 @@ class Image(object):
 
         functions = {'usm': self._usm,
                      'emboss': self._emboss,
+                     'par_blur': self._parallel_blur,
                      'blur': self._blur3,
                      'gamma': self._gamma,
                      'br': self._blue_red_subtract,
@@ -401,7 +407,7 @@ class Image(object):
         LOGGER.debug("Generating RGB mix.")
         LOGGER.debug("Mixing factor: %.2lf", args)
         self._to_numpy()
-        img = Image(img=self.img.copy())
+        img = Image(img=self.img.copy(), nprocs=self.nprocs)
         img.enhance({'rgb_sub': None})
 
         self.img *= (1-args)
@@ -473,7 +479,12 @@ class Image(object):
         '''
         LOGGER.debug("Removing gradient.")
         self._to_numpy()
-        args = {'method': {'blur': args}}
+
+        if self.nprocs > 1:
+            args = {'method': {'par_blur': args}}
+        else:
+            args = {'method': {'blur': args}}
+
         gradient = self._calculate_gradient(args)
         self.img -= gradient.img
 
@@ -485,6 +496,7 @@ class Image(object):
         :param method: name of the method for calculating the gradient
         '''
         methods = {'blur': self._gradient_blur,
+                   'par_blur': self._gradient_blur,
                    'random': self._gradient_random_points,
                    'grid': self._gradient_grid_points}
         # 'user': self._gradient_get_user_points,
@@ -503,13 +515,14 @@ class Image(object):
         result = func(args['method'])
         shape = self.img.shape
 
-        if args['method'].keys()[0] is 'blur':
+        if args['method'].keys()[0] in ['blur', 'par_blur']:
             return result
 
         x_pts, y_pts = result
         if len(shape) == 2:
             return Image(img=self._gradient_fit_surface(x_pts, y_pts,
-                                                        order=args['order']))
+                                                        order=args['order']),
+                         nprocs=self.nprocs)
         else:
             gradient = np.empty(shape)
             for i in range(shape[2]):
@@ -517,13 +530,13 @@ class Image(object):
                     self._gradient_fit_surface(x_pts, y_pts,
                                                order=args['order'],
                                                chan=i)
-            return Image(img=gradient)
+            return Image(img=gradient, nprocs=self.nprocs)
 
     def _gradient_blur(self, args):
         '''Blur the image to get the approximation of the background
         gradient.
         '''
-        gradient = Image(img=self.img.copy())
+        gradient = Image(img=self.img.copy(), nprocs=self.nprocs)
         gradient.enhance(args)
 
         return gradient
@@ -690,12 +703,73 @@ class Image(object):
 
         self.img -= np.min(self.img)
 
+    def _parallel_blur(self, args):
+        '''Blur the image using 1D convolution for each column and
+        row. Data borders are padded with mean of the border area
+        before convolution to reduce the edge effects.
+        '''
+        self._to_numpy()
+
+        shape = self.img.shape
+        if args is None:
+            radius = int(np.min(shape[:2])/20.)
+        else:
+            radius = args[0]
+
+        def form_blur_data(data, radius):
+            '''Form vectors for blur.
+            '''
+            vect = np.zeros(2*radius+data.size-1, dtype=data.dtype)
+            vect[:radius] = np.mean(data[:radius])
+            vect[radius:radius+data.size] = data
+            vect[-radius:] = np.mean(data[-radius:])
+
+            return vect
+
+        LOGGER.debug("Blur radius is %.0lf pixels.", radius)
+        LOGGER.debug("Using %d threads.", self.nprocs)
+
+        kernel = np.ones(2*radius)/(2*radius)
+
+        pool = Pool(self.nprocs)
+        for i in range(shape[-1]):
+            # rows
+            data = []
+            for j in range(shape[0]):
+                data.append([kernel, form_blur_data(self.img[j, :, i],
+                                                    radius)])
+            result = pool.map(_blur_worker, data)
+            # collect result data
+            for j in range(shape[0]):
+                self.img[j, :, i] = result[j][2*radius:2*radius+shape[1]]
+
+            data = []
+            # columns
+            for j in range(shape[1]):
+                data.append([kernel, form_blur_data(self.img[:, j, i],
+                                                    radius)])
+            result = pool.map(_blur_worker, data)
+            # collect result data
+            for j in range(shape[1]):
+                self.img[:, j, i] = result[j][2*radius:2*radius+shape[0]]
+
+        self.img -= np.min(self.img)
+
     def _gamma(self, args):
         '''Apply gamma correction to the image.
         '''
         self._to_imagemagick()
         LOGGER.debug("Apply gamma correction, gamma: %.2lf.", args[0])
         self.img.gamma(args[0])
+
+
+def _blur_worker(data_in):
+    '''Worker for blurring rows in parallel.
+    '''
+    kernel = data_in[0]
+    data = data_in[1]
+
+    return np.convolve(data, kernel, mode='full')
 
 def to_numpy(img):
     '''Convert ImageMagick data to numpy array.
@@ -718,6 +792,7 @@ def to_numpy(img):
         return out_img.reshape(height, width, chans)
 
     return img
+
 
 def to_imagemagick(img):
     '''Convert numpy array to Imagemagick format.
