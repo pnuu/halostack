@@ -50,6 +50,8 @@ class Image(object):
         self.fname = fname
         self.nprocs = nprocs
 
+        self.pool = None
+
         if fname is not None:
             self._read()
         if enhancements:
@@ -366,6 +368,7 @@ class Image(object):
         LOGGER.debug("Multiplier: %.3lf", multiplier)
         self.img = multiplier * chan1 - chan2
 
+
     def _blue_red_subtract(self, args):
         '''Subtract red channel from the blue channel after scaling
         the blue channel using the supplied multiplier.
@@ -391,6 +394,7 @@ class Image(object):
             self.img[:, :, i] -= luminance
         self.img -= self.img.min()
 
+
     def _rgb_mix(self, args):
         '''Subtract mean(r,g,b) from all the channels, and blend it
         back to the original image.
@@ -412,6 +416,7 @@ class Image(object):
 
         self.img *= (1-args)
         self.img += args * img.img
+
 
     def _stretch(self, args):
         '''Apply a linear stretch to the image.
@@ -490,6 +495,7 @@ class Image(object):
 
         if self.img.min() < 0:
             self.img -= self.img.min()
+
 
     def _calculate_gradient(self, args):
         '''Calculate gradient from the image using the given method.
@@ -580,16 +586,18 @@ class Image(object):
         '''
 
         self._to_numpy()
+        LOGGER.info("Scaling image to %d bits.", args[0])
+
         img = self.img - self.img.min()
         img_max = np.max(img)
         if img_max != 0:
             img = (2**args[0] - 1) * img / img_max
+
         if args[0] <= 8:
-            LOGGER.info("Scaling the image to 8-bits.")
             self.img = img.astype('uint8')
         else:
-            LOGGER.info("Scaling the image to 16-bits.")
             self.img = img.astype('uint16')
+
 
     def _rotate(self, *args):
         '''Rotate image.
@@ -703,6 +711,7 @@ class Image(object):
 
         self.img -= np.min(self.img)
 
+
     def _parallel_blur(self, args):
         '''Blur the image using 1D convolution for each column and
         row. Data borders are padded with mean of the border area
@@ -731,14 +740,16 @@ class Image(object):
 
         kernel = np.ones(2*radius)/(2*radius)
 
-        pool = Pool(self.nprocs)
+        if self.pool is None:
+            self.pool = Pool(self.nprocs)
+
         for i in range(shape[-1]):
             # rows
             data = []
             for j in range(shape[0]):
                 data.append([kernel, form_blur_data(self.img[j, :, i],
                                                     radius)])
-            result = pool.map(_blur_worker, data)
+            result = self.pool.map(_blur_worker, data)
             # collect result data
             for j in range(shape[0]):
                 self.img[j, :, i] = result[j][2*radius:2*radius+shape[1]]
@@ -748,12 +759,13 @@ class Image(object):
             for j in range(shape[1]):
                 data.append([kernel, form_blur_data(self.img[:, j, i],
                                                     radius)])
-            result = pool.map(_blur_worker, data)
+            result = self.pool.map(_blur_worker, data)
             # collect result data
             for j in range(shape[1]):
                 self.img[:, j, i] = result[j][2*radius:2*radius+shape[0]]
 
         self.img -= np.min(self.img)
+
 
     def _gamma(self, args):
         '''Apply gamma correction to the image.
@@ -792,7 +804,6 @@ def to_numpy(img):
         return out_img.reshape(height, width, chans)
 
     return img
-
 
 def to_imagemagick(img):
     '''Convert numpy array to Imagemagick format.

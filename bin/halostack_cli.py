@@ -151,6 +151,9 @@ def halostack_cli(args):
                         nprocs=args['nprocs'])
         LOGGER.info("Alignment initialized.")
 
+    # memory management
+    del base_img
+
     for img in images:
         # Read image
         LOGGER.info("Reading %s.", img)

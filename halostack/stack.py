@@ -115,6 +115,7 @@ class Stack(object):
                 for i in range(img.img.shape[-1]):
                     self.stack.img[idxs_y, idxs_x, i] = img[idxs_y, idxs_x, i]
 
+
     def _update_max(self, img):
         '''Update maximum stack. Maximum values are selected using
         luminance.
@@ -129,6 +130,7 @@ class Stack(object):
             if np.any(idxs_x):
                 for i in range(img.img.shape[-1]):
                     self.stack[idxs_y, idxs_x, i] = img[idxs_y, idxs_x, i]
+
 
     def _update_deep(self, img):
         '''Update deep (median or sigma-reject average) stack.
@@ -146,6 +148,7 @@ class Stack(object):
         self.stack['R'][:, :, self._num] = img[:, :, 0]
         self.stack['G'][:, :, self._num] = img[:, :, 1]
         self.stack['B'][:, :, self._num] = img[:, :, 2]
+
 
     def _calculate_median(self):
         '''Calculate the median of the stack and return the resulting

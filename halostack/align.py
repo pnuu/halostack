@@ -62,6 +62,8 @@ class Align(object):
         self.nprocs = nprocs
         self.ref = None
 
+        self.pool = Pool(self.nprocs)
+
         try:
             self.align_func = modes[mode]
         except AttributeError:
@@ -149,13 +151,13 @@ class Align(object):
         '''Search for the best match in parallel.
         '''
 
-        pool = Pool(self.nprocs)
         data = []
         for i in range(xlims[0], xlims[1]):
             xran = range(i-ref_shp[1], i+ref_shp[1]+1)
             data.append((img[:, xran], ylims, self.ref))
 
-        result = pool.map(_simple_search_worker, data)
+        result = self.pool.map(_simple_search_worker, data)
+
         result = np.array(result)
         idx = np.argmin(result[:, 0])
 
@@ -225,8 +227,8 @@ class Align(object):
             self._calc_shift_ranges(x_shift, y_shift)
         new_img[output_y_range[0]:output_y_range[1],
                 output_x_range[0]:output_x_range[1], :] = \
-            img[input_y_range[0]:input_y_range[1],
-                input_x_range[0]:input_x_range[1], :]
+                img[input_y_range[0]:input_y_range[1],
+                    input_x_range[0]:input_x_range[1], :]
 
         return new_img
 
@@ -261,7 +263,7 @@ class Align(object):
                 input_ranges[0], input_ranges[1])
 
 
-def _simple_search_worker(data):
+def _simple_search_worker(data_in):
     '''Worker function for alignment search.
     '''
 
@@ -274,14 +276,14 @@ def _simple_search_worker(data):
         '''
         return (data**2).sum()
 
-    img = data[0]
-    lims = data[1]
-    ref = data[2]
+    data = data_in[0]
+    lims = data_in[1]
+    ref = data_in[2]
 
     ref_shp = [i/2 for i in ref.shape]
     sqdiffs = 2**64 * np.ones(lims[1])
     for j in range(lims[0], lims[1]):
-        sqdiffs[j] = _sum_of_squares(img[j-ref_shp[0]:j+ref_shp[0]+1, :] - ref)
+        sqdiffs[j] = _sum_of_squares(data[j-ref_shp[0]:j+ref_shp[0]+1, :] - ref)
 
     idx = np.argmin(sqdiffs)
 
