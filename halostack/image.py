@@ -164,29 +164,25 @@ class Image(object):
             self.img = to_numpy(self.img).astype(np.float64)
             self.shape = self.img.shape
 
-    def _to_imagemagick(self):
+    def _to_imagemagick(self, bits=16):
         '''Convert from numpy to PMImage.
         '''
-        self.img = to_imagemagick(self.img)
+        self.img = to_imagemagick(self.img, bits=bits)
 
-    def save(self, fname, bits=16, scale=True, enhancements=None):
+    def save(self, fname, bits=16, enhancements=None):
         '''Save the image data.
 
         :param fname: output filename
         :type fname: str
         :param bits: output bit-depth
         :type bits: int
-        :param scale: scale image values to cover *bits* bit-depth
-        :type scale: boolean
         :param enhancements: image processing applied to the image before saving
         :type enhancements: dictionary or None
         '''
 
         if enhancements:
             self.enhance(enhancements)
-        if scale:
-            self._scale(bits)
-        self._to_imagemagick()
+        self._to_imagemagick(bits=bits)
         self.img.write(fname)
 
     def min(self):
@@ -581,23 +577,6 @@ class Image(object):
                              order=order)
             return polyval2d(x_locs, y_locs, poly).T
 
-    def _scale(self, *args):
-        '''Scale image to cover the whole bit-range.
-        '''
-
-        self._to_numpy()
-        LOGGER.info("Scaling image to %d bits.", args[0])
-
-        img = self.img - self.img.min()
-        img_max = np.max(img)
-        if img_max != 0:
-            img = (2**args[0] - 1) * img / img_max
-
-        if args[0] <= 8:
-            self.img = img.astype('uint8')
-        else:
-            self.img = img.astype('uint16')
-
 
     def _rotate(self, *args):
         '''Rotate image.
@@ -805,7 +784,7 @@ def to_numpy(img):
 
     return img
 
-def to_imagemagick(img):
+def to_imagemagick(img, bits=16):
     '''Convert numpy array to Imagemagick format.
 
     :param img: image to convert
@@ -814,6 +793,25 @@ def to_imagemagick(img):
     '''
 
     if not isinstance(img, PMImage):
+
+        def _scale(img, bits=16):
+            '''Scale image to cover the whole bit-range.
+            '''
+
+            LOGGER.info("Scaling image to %d bits.", bits)
+
+            img -= img.min()
+            img_max = np.max(img)
+            if img_max != 0:
+                img = (2**bits - 1) * img / img_max
+
+            if bits <= 8:
+                return img.astype('uint8')
+            else:
+                return img.astype('uint16')
+
+        img = _scale(img, bits=bits)
+
         LOGGER.debug("Converting from Numpy to ImageMagick.")
         out_img = PMImage()
         if img.dtype == np.uint8:
