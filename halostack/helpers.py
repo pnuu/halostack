@@ -184,7 +184,7 @@ def intermediate_fname(prefix, fname):
 
     :param prefix: prefix to prepend to the basename of the file.
     :type prefix: str
-    :param fname: filename, with of without the path
+    :param fname: filename, with or without the path
     :type fname: str
     :rtype: new filename as a string
     '''
