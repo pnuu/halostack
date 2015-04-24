@@ -801,22 +801,6 @@ def to_imagemagick(img, bits=16):
 
     if not isinstance(img, PMImage):
 
-        def _scale(img, bits=16):
-            '''Scale image to cover the whole bit-range.
-            '''
-
-            LOGGER.debug("Scaling image to %d bits.", bits)
-
-            img -= img.min()
-            img_max = np.max(img)
-            if img_max != 0:
-                img = (2**bits - 1) * img / img_max
-
-            if bits <= 8:
-                return img.astype('uint8')
-            else:
-                return img.astype('uint16')
-
         img = _scale(img, bits=bits)
 
         LOGGER.debug("Converting from Numpy to ImageMagick.")
@@ -844,6 +828,24 @@ def to_imagemagick(img, bits=16):
 
         return out_img
     return img
+
+
+def _scale(img, bits=16):
+    '''Scale image to cover the whole bit-range.
+    '''
+
+    LOGGER.debug("Scaling image to %d bits.", bits)
+
+    img -= img.min()
+    img_max = np.max(img)
+    if img_max != 0:
+        img = (2**bits - 1) * img / img_max
+
+    if bits <= 8:
+        return img.astype('uint8')
+    else:
+        return img.astype('uint16')
+
 
 def polyfit2d(x_loc, y_loc, z_val, order=2):
     '''Fit a 2-D polynomial to the given data.
