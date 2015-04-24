@@ -39,7 +39,7 @@ LOG_CONFIG = {
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-            'level': 'DEBUG',
+            'level': 'INFO',
             'formatter': 'normal'
             },
         'file': {
@@ -78,26 +78,6 @@ LOG_CONFIG = {
 
 LOGGER = logging.getLogger("halostack_cli")
 
-def logging_setup(args):
-    '''Setup logging.
-    '''
-
-#    global LOGGER
-
-    # Clear earlier handlers
-    # LOGGER.handlers = []
-
-    if args is None:
-        loglevel = logging.DEBUG #INFO
-    else:
-        loglevel = args.get("loglevel", "DEBUG").upper()
-        try:
-            loglevel = getattr(logging, loglevel)
-        except AttributeError:
-            loglevel = logging.INFO
-
-    LOGGER.setLevel(loglevel) # = logging.getLogger("halostack_cli")
-
 
 def halostack_cli(args):
     '''Commandline interface.'''
@@ -113,71 +93,69 @@ def halostack_cli(args):
     for stack in args['stacks']:
         stacks.append(Stack(stack, len(images), nprocs=args['nprocs']))
 
-    base_img = Image(fname=images[0], enhancements=args['enhance_images'],
-                     nprocs=args['nprocs'])
-    LOGGER.info("Using %s as base image.", base_img.fname)
+    base_img = Image(fname=images[0], nprocs=args['nprocs'])
+    LOGGER.debug("Using %s as base image.", base_img.fname)
     images.remove(images[0])
 
     if not args['no_alignment'] and len(images) > 1:
         view_img = base_img.luminance()
         if isinstance(args['view_gamma'], float):
             view_img.enhance({'gamma': args['view_gamma']})
-        print "Click tight area (two opposite corners) for "\
-            "reference location."
+        print "\nClick tight area (two opposite corners) for "\
+            "reference location.\n"
         args['focus_reference'] = get_two_points(view_img)
-        LOGGER.info("Reference area: (%d, %d) with radius %d.",
-                    args['focus_reference'][0],
-                    args['focus_reference'][1],
-                    args['focus_reference'][2])
+        LOGGER.debug("Reference area: (%d, %d) with radius %d.",
+                     args['focus_reference'][0],
+                     args['focus_reference'][1],
+                     args['focus_reference'][2])
         print "Click two corner points for the area where alignment "\
-            "reference will be in every image."
+            "reference will be in every image.\n"
         args['focus_area'] = get_two_points(view_img)
 
-        LOGGER.info("User-selected search area: (%d, %d) with radius %d.",
+        LOGGER.debug("User-selected search area: (%d, %d) with radius %d.",
                     args['focus_area'][0],
                     args['focus_area'][1],
                     args['focus_area'][2])
         del view_img
 
-    for stack in stacks:
-        LOGGER.debug("Adding %s to %s stack", base_img.fname, stack.mode)
-        stack.add_image(base_img)
-
     if not args['no_alignment'] and len(images) > 1:
         LOGGER.debug("Initializing alignment.")
-        aligner = Align(base_img, ref_loc=args['focus_reference'],
-                        srch_area=args['focus_area'],
+        aligner = Align(base_img,
                         cor_th=args['correlation_threshold'],
                         nprocs=args['nprocs'])
-        LOGGER.info("Alignment initialized.")
+        aligner.set_reference(args['focus_reference'])
+        aligner.set_search_area(args['focus_area'])
+        LOGGER.debug("Alignment initialized.")
+
+    if len(args['enhance_images']) > 0:
+        LOGGER.info("Preprocessing image.")
+        base_img.enhance(args['enhance_images'])
+    for stack in stacks:
+        stack.add_image(base_img)
 
     # memory management
     del base_img
 
     for img in images:
         # Read image
-        LOGGER.info("Reading %s.", img)
-        img = Image(fname=img, enhancements=args['enhance_images'],
-                    nprocs=args['nprocs'])
+        img = Image(fname=img, nprocs=args['nprocs'])
 
         if not args['no_alignment'] and len(images) > 1:
             # align image
-            LOGGER.info("Aligning image.")
             img = aligner.align(img)
 
         if img is None:
-            LOGGER.warning("Threshold was below threshold, skipping image.")
+            LOGGER.warning("Skipping image.")
             continue
 
+        if len(args['enhance_images']) > 0:
+            LOGGER.info("Preprocessing image.")
+            img.enhance(args['enhance_images'])
         for stack in stacks:
-            LOGGER.info("Adding image to %s stack.", stack.mode)
             stack.add_image(img)
 
     for i in range(len(stacks)):
-        LOGGER.info("Calculating %s stack", stacks[i].mode)
         img = stacks[i].calculate()
-        LOGGER.info("Saving %s stack to %s.", stacks[i].mode,
-                    args['stack_fnames'][i])
         img.save(args['stack_fnames'][i],
                  enhancements=args['enhance_stacks'])
 
@@ -198,14 +176,14 @@ def main():
                         help="Output filename of the median stack")
     parser.add_argument("-t", "--correlation-threshold",
                         dest="correlation_threshold",
-                        default=0.7, metavar="NUM", type=float,
+                        default=None, metavar="NUM", type=float,
                         help="Minimum required correlation [0.7]")
     parser.add_argument("-s", "--save-images", dest="save_postfix",
                         default=None, metavar="STR",
                         help="Save aligned images as PNG with the given " \
                             "filename postfix")
     parser.add_argument("-n", "--no-alignment", dest="no_alignment",
-                        default=False, action="store_true",
+                        default=None, action="store_true",
                         help="Stack without alignment")
     parser.add_argument("-e", "--enhance-images", dest="enhance_images",
                         default=[], type=str, action="append",
@@ -221,10 +199,8 @@ def main():
     parser.add_argument("-c", "--config_item", dest="config_item",
                         metavar="STR", default=None,
                         help="Config item to select parameters")
-    parser.add_argument("-l", "--loglevel", dest="loglevel", metavar="LOGLEVEL",
-                        type=str, default="INFO", help="Set level of shown messages")
     parser.add_argument("-p", "--nprocs", dest="nprocs", metavar="INT",
-                        type=int, default=1,
+                        type=int, default=None,
                         help="Number of parallel processes")
     parser.add_argument('fname_in', metavar="FILE", type=str, nargs='*',
                         help='List of files')
@@ -236,13 +212,23 @@ def main():
     if args["config_item"] is not None:
         args = read_config(args)
 
-    # Re-adjust logging
-    logging_setup(args)
+    # Check which adjustments are made for each image, and then for
+    # the resulting stacks
+    args['enhance_images'] = parse_enhancements(args['enhance_images'])
+    args['enhance_stacks'] = parse_enhancements(args['enhance_stacks'])
 
     # Workaround for windows for getting all the filenames with *.jpg syntax
     # that is expanded by the shell in linux
     args['fname_in'] = get_filenames(args['fname_in'])
     LOGGER.debug(args['fname_in'])
+
+    # Check validity
+    if not isinstance(args['nprocs'], int):
+        args['nprocs'] = 1
+    if not isinstance(args['correlation_threshold'], float):
+        args['correlation_threshold'] = 0.7
+    if not isinstance(args['no_alignment'], bool):
+        args['no_alignment'] = False
 
     # Check which stacks will be made
     stacks = []
@@ -266,12 +252,8 @@ def main():
     args['stacks'] = stacks
     args['stack_fnames'] = stack_fnames
 
-    # Check which adjustments are made for each image, and then for
-    # the resulting stacks
-    args['enhance_images'] = parse_enhancements(args['enhance_images'])
-    args['enhance_stacks'] = parse_enhancements(args['enhance_stacks'])
-
     LOGGER.info("Starting stacking")
+
     halostack_cli(args)
 
 

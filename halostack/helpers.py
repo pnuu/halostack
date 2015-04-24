@@ -28,6 +28,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import ConfigParser
 from collections import OrderedDict as od
+import warnings
 
 LOGGER = logging.getLogger(__name__)
 
@@ -48,10 +49,10 @@ def get_filenames(fnames):
             all_fnames = glob(fname)
             for fname2 in all_fnames:
                 fnames_out.append(fname2)
-                LOGGER.info("Added %s to the image list", fname2)
+                LOGGER.debug("Added %s to the image list", fname2)
         else:
             fnames_out.append(fname)
-            LOGGER.info("Added %s to the image list", fname)
+            LOGGER.debug("Added %s to the image list", fname)
 
     return fnames_out
 
@@ -119,11 +120,13 @@ def get_image_coordinates(img_in, num):
         img = 255*img/np.max(img)
         img = img.astype(np.uint8)
 
-    fig = plt.figure()
-    plt.imshow(img, cmap='gray')
-    fig.tight_layout()
-    points = plt.ginput(num, show_clicks=True, timeout=0)
-    plt.close()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        fig = plt.figure()
+        plt.imshow(img, cmap='gray')
+        fig.tight_layout()
+        points = plt.ginput(num, show_clicks=True, timeout=0)
+        plt.close()
 
     x_cs, y_cs = [], []
     for pnt in points:
@@ -145,14 +148,31 @@ def read_config(args):
 
     fname = args['config_file']
     LOGGER.info("Reading configuration file %s.", fname)
-    config_item = args.get(args, 'config_item', 'default')
+    config_item = args.get('config_item', 'default')
 
     config = ConfigParser.ConfigParser()
     config.read(fname)
 
     cfg = dict(config.items(config_item))
-    for itm in cfg.items():
-        if itm not in args:
-            args[itm] = cfg[itm]
+
+    for key in cfg.keys():
+        if key not in args or isinstance(args[key], list) or args[key] is None:
+            if 'enhance' in key:
+                vals = cfg[key].split()
+                for val in vals:
+                    args[key].append(val)
+            else:
+                try:
+                    args[key] = int(cfg[key])
+                except ValueError:
+                    try:
+                        args[key] = float(cfg[key])
+                    except ValueError:
+                        if cfg[key].lower() == 'true':
+                            args[key] = True
+                        elif cfg[key].lower() == 'false':
+                            args[key] = False
+                        else:
+                            args[key] = cfg[key]
 
     return args

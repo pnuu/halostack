@@ -55,11 +55,13 @@ class Image(object):
         if fname is not None:
             self._read()
         if enhancements:
+            LOGGER.info("Preprocessing image.")
             self.enhance(enhancements)
         self.shape = None
         self._to_numpy()
 
     def __add__(self, img):
+        self._to_numpy()
         if isinstance(img, Image):
             img.to_numpy()
             return Image(img=self.img+img.img, nprocs=self.nprocs)
@@ -71,6 +73,7 @@ class Image(object):
         return self.__add__(img)
 
     def __sub__(self, img):
+        self._to_numpy()
         if isinstance(img, Image):
             img.to_numpy()
             return Image(img=self.img-img.img, nprocs=self.nprocs)
@@ -85,6 +88,7 @@ class Image(object):
         self.img = self.__sub__(img)
 
     def __mul__(self, img):
+        self._to_numpy()
         if isinstance(img, Image):
             img.to_numpy()
             return Image(img=self.img*img.img, nprocs=self.nprocs)
@@ -96,6 +100,7 @@ class Image(object):
         return self.__mul__(img)
 
     def __div__(self, img):
+        self._to_numpy()
         if isinstance(img, Image):
             self._to_numpy()
             img.to_numpy()
@@ -109,30 +114,35 @@ class Image(object):
         return Image(img=np.abs(self.img), nprocs=self.nprocs)
 
     def __lt__(self, img):
+        self._to_numpy()
         if isinstance(img, Image):
             img.to_numpy()
             img = img.img
         return self.img < img
 
     def __le__(self, img):
+        self._to_numpy()
         if isinstance(img, Image):
             img.to_numpy()
             img = img.img
         return self.img <= img
 
     def __gt__(self, img):
+        self._to_numpy()
         if isinstance(img, Image):
             img.to_numpy()
             img = img.img
         return self.img > img
 
     def __ge__(self, img):
+        self._to_numpy()
         if isinstance(img, Image):
             img.to_numpy()
             img = img.img
         return self.img >= img
 
     def __eq__(self, img):
+        self._to_numpy()
         if isinstance(img, Image):
             img.to_numpy()
             img = img.img
@@ -181,8 +191,10 @@ class Image(object):
         '''
 
         if enhancements:
+            LOGGER.info("Postprocessing output image.")
             self.enhance(enhancements)
         self._to_imagemagick(bits=bits)
+        LOGGER.info("Saving %s.", fname)
         self.img.write(fname)
 
     def min(self):
@@ -340,7 +352,7 @@ class Image(object):
                      'stretch': self._stretch}
 
         for key in enhancements:
-            LOGGER.info("Apply method \"%s\".", key)
+            LOGGER.info("Apply \"%s\".", key)
             func = functions[key]
             func(enhancements[key])
 
@@ -382,7 +394,7 @@ class Image(object):
     def _rgb_subtract(self, args):
         '''Subtract mean(r,g,b) from all the channels.
         '''
-        LOGGER.debug("Subtracting luminance from all color channels.")
+        LOGGER.debug("Subtracting luminance from color channels.")
         del args
         self._to_numpy()
         luminance = self.luminance().img
@@ -404,7 +416,6 @@ class Image(object):
         else:
             args = args[0]
 
-        LOGGER.debug("Generating RGB mix.")
         LOGGER.debug("Mixing factor: %.2lf", args)
         self._to_numpy()
         img = Image(img=self.img.copy(), nprocs=self.nprocs)
@@ -430,7 +441,6 @@ class Image(object):
         if len(args) == 1:
             args.append(1-args[0])
 
-        LOGGER.debug("Applying linear stretch.")
         LOGGER.debug("low cut: %.0f %%, high cut: %.0f %%",
                      100*args[0], 100*args[1])
 
@@ -478,7 +488,6 @@ class Image(object):
         '''Calculate the gradient from the image, subtract from the
         original, scale back to full bit depth and return the result.
         '''
-        LOGGER.debug("Removing gradient.")
         self._to_numpy()
 
         if self.nprocs > 1:
@@ -594,7 +603,6 @@ class Image(object):
             args.append(np.sqrt(args[0]))
         if len(args) == 3:
             args.append(0)
-        LOGGER.debug("Apply unsharp mask.")
         LOGGER.debug("Radius: %.0lf, amount: %.1lf, "
                      "sigma: %.1lf, threshold: %.0lf.", args[0], args[1],
                      args[2], args[3])
@@ -610,8 +618,7 @@ class Image(object):
         if len(args) == 0:
             args.append(90)
         if len(args) == 1:
-            args.append(45)
-        LOGGER.debug("Apply emboss.")
+            args.append(10)
         LOGGER.debug("Azimuth: %.1lf, elevation: %.1lf.", args[0], args[1])
         self._to_imagemagick()
         self.img.shade(*args)
@@ -798,7 +805,7 @@ def to_imagemagick(img, bits=16):
             '''Scale image to cover the whole bit-range.
             '''
 
-            LOGGER.info("Scaling image to %d bits.", bits)
+            LOGGER.debug("Scaling image to %d bits.", bits)
 
             img -= img.min()
             img_max = np.max(img)

@@ -49,17 +49,17 @@ class Align(object):
     'simple'
     '''
 
-    def __init__(self, img, ref_loc=None, srch_area=None, cor_th=70.0,
-                 mode='simple', nprocs=1):
+    def __init__(self, img, cor_th=70.0, mode='simple', nprocs=1):
 
-        LOGGER.info("Initiliazing aligner using %s mode.", mode)
+        LOGGER.debug("Initiliazing aligner using %s mode.", mode)
         modes = {'simple': self._simple_match}
 
         self.img = img
-        self.ref_loc = ref_loc
-        self.srch_area = srch_area
         self.correlation_threshold = cor_th
         self.nprocs = nprocs
+
+        self.ref_loc = None
+        self.srch_area = None
         self.ref = None
 
         self.pool = Pool(self.nprocs)
@@ -67,15 +67,14 @@ class Align(object):
         try:
             self.align_func = modes[mode]
         except AttributeError:
-            LOGGER.warning("Mode %s not recognized, using simple mode instead.",
-                         mode)
+            LOGGER.warning("Alignment mode %s not recognized, "
+                           "using simple mode instead.",
+                           mode)
             self.align_func = self._simple_match
 
-        if ref_loc is not None:
-            self._set_ref()
-        if srch_area is None:
-            y_size, x_size = self.img.shape
-            self.srch_area = [0, 0, y_size, x_size]
+        # default to search from the whole image
+        y_size, x_size = self.img.shape[:2]
+        self.srch_area = [0, 0, y_size, x_size]
 
 
     def set_reference(self, area):
@@ -87,16 +86,16 @@ class Align(object):
         LOGGER.debug("Setting reference location: (%d, %d), radius: %d.",
                      area[0], area[1], area[2])
         self.ref_loc = area
-
+        self._set_ref()
 
     def set_search_area(self, area):
         '''Set the reference search area *area*.
 
-        :param area: 4-tuple of the form (x1, x2, y1, y2)
+        :param area: 3-tuple of the form (x, y, radius)
         :type area: list or tuple
         '''
-        LOGGER.debug("Setting search area to (%d, %d) - (%d, %d).",
-                     area[0], area[1], area[2], area[3])
+        LOGGER.debug("Setting search area to center: (%d, %d), radius: %d.",
+                     area[0], area[1], area[2])
         self.srch_area = area
 
 
@@ -114,9 +113,10 @@ class Align(object):
                                "threshold (%.3f).",
                            corr, self.correlation_threshold)
             return None
+        LOGGER.info("Match found, correlation: %.3lf.", corr)
         # Calculate shift
         x_shift, y_shift = self._calc_shift(x_loc, y_loc)
-        LOGGER.info("Shifting image: x = %d, y = %d.",
+        LOGGER.debug("Shifting image: x = %d, y = %d.",
                     x_shift, y_shift)
         # Shift the image
         img = self._shift(img, x_shift, y_shift)
@@ -205,9 +205,6 @@ class Align(object):
         ref_flat = self.ref.flatten()
         best_corr = np.corrcoef(best_fit_data, ref_flat)**2
 
-        LOGGER.info("Best correlation was %.3f at (%d, %d).",
-                    best_corr[0, 1], best_res[1], best_res[2])
-
         return (best_corr[0, 1], best_res[1], best_res[2]) # corr, x, y
 
 
@@ -221,7 +218,7 @@ class Align(object):
     def _shift(self, img, x_shift, y_shift):
         '''Shift the image by x_shift and y_shift pixels.
         '''
-        LOGGER.info("Shifting image.")
+        LOGGER.debug("Shifting image.")
         new_img = 0*img
         output_x_range, output_y_range, input_x_range, input_y_range = \
             self._calc_shift_ranges(x_shift, y_shift)

@@ -128,14 +128,6 @@ ____________________
   - ``-c default``
   - select the config item to use
 
-- ``-l, --loglevel``
-
-  - ``-l debug``
-  - ``-l info``
-  - ``-l warning``
-  - ``-l error``
-  - set the level of messages
-
 - ``-p, --nprocs``
 
   - ``-p <num>``
@@ -166,20 +158,21 @@ Below is an example configuration::
 
     # average stack from raw/tiff images with view gamma set
     [avg_from_raw]
-    average_stack = average.png
+    avg_stack_file = average.png
     view_gamma = 1.5
 
-    # average stack from raw/tiff images with view gamma set and USM applied to the stack
+    # average stack from linear raw/tiff images with view gamma set
+    # and USM applied to the stack
     [avg_from_raw]
-    average_stack = average.png
+    avg_stack_file = average.png
     view_gamma = 1.5
     enhance_stacks = usm:25,2
 
-    # B-R processing without stacking and less output
+    # B-R processing without stacking
     [br]
-    no_alignment = 
+    avg_stack_file = ave_stack_with_br.png
+    no_alignment = True
     enhance_stacks = gradient br
-    loglevel = warning
 
 These pre-set configurations can be used like this::
 
@@ -217,7 +210,8 @@ Unsharp mask
 ++++++++++++
 
 Unsharp mask, or USM in short, is a way to enhance halos by increasing
-the image contrast.
+the image contrast.  USM is mostly used in *postprocessing* with
+``-E`` command-line switch, but some use it also in *preprocessing*.
 
 The user can give the USM four parameters:
 
@@ -249,38 +243,42 @@ The user can give the USM four parameters:
 
 The syntax is::
 
-  usm:radius,amount,sigma,threshold
+  -E usm:radius,amount,sigma,threshold
 
 where ``sigma`` and ``threshold`` are optional::
 
-  usm:25,5
-  usm:30,4,15
-  usm:40,5,20,0.05
+  -E usm:25,5
+  -E usm:30,4,15
+  -E usm:40,5,20,0.05
 
 Emboss
 ++++++
 
 Emboss makes a relief of the image based on local contrast.  In some
-cases this can show the halos more clearly.
+cases this can show the halos more clearly.  Emboss is used in
+postprocessing with ``-E`` command-line switch.
 
 Syntax::
 
-  emboss:azimuth,elevation
+  -E emboss:azimuth,elevation
 
 where ``azimuth`` (default: ``90``) and ``elevation`` (default:
-``45``) are *optional* arguments giving the location of the light
+``10``) are *optional* arguments giving the location of the light
 source in degrees.
 
 Syntax::
 
-  emboss
-  emboss:90
-  emboss:90,45
+  -E emboss
+  -E emboss:90
+  -E emboss:90,20
 
 The smaller the elevation value, the longer the "shadow" is behind the
-halos.  The *azimuth* can be adjusted to best effect to reflect the
-orientation of the halos.
+halos and the higher the contrast.  The *azimuth* can be adjusted to
+best effect to reflect the orientation of the halos.
 
+Use of *linear stretching* (``stretch``, see below) is usually helpful::
+
+  -E emboss -E stretch
 
 Numpy based methods
 ===================
@@ -296,16 +294,18 @@ is to reduce the effect of the background to enhance the colorful
 (non-white) halos by subtracting red channel data from the
 appropriately scaled blue channel.
 
+Blue - Red is a *postprocessing* method.
+
 In Halostack, the procedure is highly automatized, but the user still
 has some possibilities to make adjustments.  The basic usage is to let
 Halostack determine the scaling value (restricted to be between 1.5
 and 2.5)::
 
-  br
+  -E br
 
 It is also possible to give the multiplier::
 
-  br:1.5
+  -E br:1.5
 
 To make the iteration by trial-and-error a bit faster, it is suggested
 to check what is the initial estimate from the automatic version.
@@ -318,22 +318,24 @@ above, but in this case the first channel is different.
 
 Syntax::
 
-  gr
-  gr:1.5
+  -E gr
+  -E gr:1.5
 
 Gradient removal
 ++++++++++++++++
 
 Sky tends to have gradients.  This method tries to reduce their effect
 by applying a blur to the luminance of the image and subtracting this
-from all the color channels.  By default the blur radius is 1/20th of
-the smaller image dimension::
+from all the color channels.  Although each image has different
+gradients, it is better to apply this method only in *postprocessing*
+so that the images stay similar.  By default the blur radius is 1/20th
+of the smaller image dimension::
 
-  gradient
+  -E gradient
 
 The radius can be given as a parameter::
 
-  gradient:50
+  -E gradient:50
 
 Gradient removal benefits from using multiple processors, see ``-p``
 command-line parameter.
@@ -347,11 +349,12 @@ Luminance subtraction
 Luminance subtraction is also described in the magnificient article by
 Lefadeux_.  The implementation generates a image by subtracting the
 luminance (average of the color channels) from the whole image.  No
-arguments are used.
+arguments are used.  Luminance subtraction is a *postprocessing*
+method.
 
 Syntax::
 
-  rgb_sub
+  -E rgb_sub
 
 RGB mixing
 ++++++++++
@@ -366,8 +369,8 @@ halos better.  The mixing ratio can be given, and if omitted, value of
 
 Syntax::
 
-  rgb_mix
-  rgb_mix:0.5
+  -E rgb_mix
+  -E rgb_mix:0.5
 
 Linear stretching
 +++++++++++++++++
@@ -381,20 +384,20 @@ end.
 If the values are not given, ``1 %`` (or ratio of ``0.01``) of
 the data is cut from each end::
 
-  stretch
+  -E stretch
 
 which is equal to::
 
-  stretch:0.01,0.99
+  -E stretch:0.01,0.99
 
 If only one value is given, the higher value is complement of this
 value, eg.::
 
-  stretch:0.02
+  -E stretch:0.02
 
 is equal to::
 
-  stretch:0.02,0.98
+  -E stretch:0.02,0.98
 
 
 .. _Lefadeux: http://opticsaround.blogspot.fr/2013/03/le-traitement-bleu-moins-rouge-blue.html

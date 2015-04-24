@@ -76,6 +76,8 @@ class Stack(object):
             LOGGER.debug("Converting %s to Image object.", img)
             img = Image(img=img, nprocs=self.nprocs)
 
+        LOGGER.debug("Adding image to %s stack.", self.mode)
+
         self._update_stack(img)
 
     def calculate(self):
@@ -85,6 +87,9 @@ class Stack(object):
         '''
         if self._calculate_func is None:
             return self.stack
+
+        LOGGER.info("Calculating %s stack", self.mode)
+
         return self._calculate_func()
 
     def _update_stack(self, img):
@@ -96,6 +101,7 @@ class Stack(object):
     def _update_mean(self, img):
         '''Update average stack
         '''
+
         if self.stack is None:
             self.stack = img
         else:
@@ -169,4 +175,4 @@ class Stack(object):
         '''Calculate the sigma-reject average of the stack and return
         the result as Image(dtype=uint16).
         '''
-        LOGGER.debug("Sigma stack not implemented.")
+        LOGGER.error("Sigma stack not implemented.")
