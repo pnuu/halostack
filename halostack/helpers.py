@@ -29,6 +29,7 @@ import numpy as np
 import ConfigParser
 from collections import OrderedDict as od
 import warnings
+import os.path
 
 LOGGER = logging.getLogger(__name__)
 
@@ -176,3 +177,22 @@ def read_config(args):
                             args[key] = cfg[key]
 
     return args
+
+
+def intermediate_fname(prefix, fname):
+    '''Form filename for the aligned image files.
+
+    :param prefix: prefix to prepend to the basename of the file.
+    :type prefix: str
+    :param fname: filename, with of without the path
+    :type fname: str
+    :rtype: new filename as a string
+    '''
+
+    basename = os.path.basename(fname)
+    barename = os.path.splitext(basename)[0]
+    dirname = os.path.dirname(fname)
+    parts = [prefix, '_', barename, '.png']
+    fname = ''.join(parts)
+
+    return os.path.join(dirname, fname)

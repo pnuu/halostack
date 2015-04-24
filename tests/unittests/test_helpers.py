@@ -1,6 +1,8 @@
 import unittest
 import os
-from halostack.helpers import get_filenames, parse_enhancements
+from halostack.helpers import get_filenames, parse_enhancements, \
+    intermediate_fname
+import platform
 
 class TestHelpers(unittest.TestCase):
     
@@ -36,6 +38,18 @@ class TestHelpers(unittest.TestCase):
         self.assertDictEqual(result, {'br': None, 'gradient': None})
         result = parse_enhancements(self.enh2)
         self.assertDictEqual(result, {'usm': [25., 5.], 'gradient': None})
+
+    def test_intermediate_fname(self):
+        result = intermediate_fname('foo', 'img.png')
+        self.assertEqual(result, 'foo_img.png')
+        if platform.system() == 'Windows':
+            result = intermediate_fname('foo', 'C:\temp\img.png')
+            self.assertEqual(result, 'C:\temp\foo_img.png')
+            result = intermediate_fname('foo', 'C:\temp\bar\img.png')
+            self.assertEqual(result, 'C:\temp\bar\foo_img.png')
+        else:
+            result = intermediate_fname('foo', '/tmp/bar/img.png')
+            self.assertEqual(result, '/tmp/bar/foo_img.png')
 
     def assertItemsEqual(self, a, b):
         for i in range(len(a)):

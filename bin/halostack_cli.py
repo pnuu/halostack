@@ -26,7 +26,7 @@ from halostack.stack import Stack
 from halostack.image import Image
 from halostack.align import Align
 from halostack.helpers import (get_filenames, parse_enhancements,
-                               get_two_points, read_config)
+                               get_two_points, read_config, intermediate_fname)
 import argparse
 import logging
 import platform
@@ -126,8 +126,7 @@ def halostack_cli(args):
         LOGGER.debug("Alignment initialized.")
 
     if args['save_prefix'] is not None:
-        fname = args['save_prefix'] + '_' + \
-            os.path.splitext(base_img_fname)[0] + '.png'
+        fname = intermediate_fname(args['save_prefix'], base_img_fname)
         base_img.save(fname)
 
     if len(args['enhance_images']) > 0:
@@ -153,8 +152,7 @@ def halostack_cli(args):
             continue
 
         if args['save_prefix'] is not None:
-            fname = args['save_prefix'] + '_' + \
-                os.path.splitext(img_fname)[0] + '.png'
+            fname = intermediate_fname(args['save_prefix'], img_fname)
             img.save(fname)
 
         if len(args['enhance_images']) > 0:
