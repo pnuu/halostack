@@ -27,10 +27,11 @@ from halostack.image import Image
 from halostack.align import Align
 from halostack.helpers import (get_filenames, parse_enhancements,
                                get_two_points, read_config, intermediate_fname)
+from halostack import __version__
+
 import argparse
 import logging
 import platform
-import os
 
 # log pattern
 LOG_FMT = '%(asctime)s - %(name)s - %(levelname)s: %(message)s'
@@ -210,6 +211,8 @@ def main():
     parser.add_argument("-p", "--nprocs", dest="nprocs", metavar="INT",
                         type=int, default=None,
                         help="Number of parallel processes")
+    parser.add_argument("-v", "--version", action="version",
+                        version="Halostack %s" % (__version__))
     parser.add_argument('fname_in', metavar="FILE", type=str, nargs='*',
                         help='List of files')
 
