@@ -56,13 +56,16 @@ class Align(object):
 
         self.img = img
         self.correlation_threshold = cor_th
-        self.nprocs = nprocs
+        self._nprocs = nprocs
 
         self.ref_loc = None
         self.srch_area = None
         self.ref = None
 
-        self.pool = Pool(self.nprocs)
+        if self._nprocs > 1:
+            self._pool = Pool(self._nprocs)
+        else:
+            self._pool = None
 
         try:
             self.align_func = modes[mode]
@@ -156,7 +159,10 @@ class Align(object):
             xran = range(i-ref_shp[1], i+ref_shp[1]+1)
             data.append((img[:, xran], ylims, self.ref))
 
-        result = self.pool.map(_simple_search_worker, data)
+        if self._nprocs > 1:
+            result = self._pool.map(_simple_search_worker, data)
+        else:
+            result = map(_simple_search_worker, data)
 
         result = np.array(result)
         idx = np.argmin(result[:, 0])
@@ -195,7 +201,7 @@ class Align(object):
                      ylims[0], ylims[1])
 
         LOGGER.debug("Searching for best match using %d thread(s).",
-                     self.nprocs)
+                     self._nprocs)
         best_res = self._parallel_search(img, xlims, ylims, ref_shp)
 
         # Calculate correlation coeff for the best fit

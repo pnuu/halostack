@@ -8,6 +8,7 @@ python:
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -qq python-numpy python-matplotlib python-pythonmagick
+  - sudo apt-get install --qq python3-matplotlib python3-numpy
 virtualenv:
   system_site_packages: true
 install:

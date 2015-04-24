@@ -139,6 +139,7 @@ ____________________
     - gradient removal (blurring)
 
   - default: ``1``
+  - unfortunately, in Windows you are limited to one thread
 
 - ``<list of filenames>``
 

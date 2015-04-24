@@ -14,7 +14,7 @@ class TestAlign(unittest.TestCase):
         # area to search (whole image)
         srch_area = [0, 0, 31, 31]
 
-        self.align = Align(img)
+        self.align = Align(img, nprocs=1)
         self.align.set_reference(ref_loc)
         self.align.set_search_area(srch_area)
 

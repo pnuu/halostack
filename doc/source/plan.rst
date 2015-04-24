@@ -10,6 +10,9 @@ GUI
 
 - full graphical user interface
 
+  - help needed
+
+    - that is, need someone else to implement GUI
 
 Image input
 -----------
@@ -18,6 +21,13 @@ Image input
 
   - python-exif for linux, windows?
   - separate CSV file needed for TIFF and/or windows?
+
+- use Wand instead of PythonMagick
+
+  - provides also EXIF functionality
+
+- possibility to give directory containing all the photos
+- possibility to give image filenames/masks in config file
 
 
 Image alignment
@@ -47,9 +57,23 @@ Image enhancements
   - for example, several average stacks with different
     pre/postprocessing applied
 
-  - ``-a avg.png -a avg_pre_usm.png -e usm:25,2 -a avg_pre_post_usm.png -e usm:25,2 -E usm:25,2 -a avg_br.png -E gradient,br``
+  - ``-a avg.png -a avg_pre_usm.png -e usm:25,2 -a
+    avg_pre_post_usm.png -e usm:25,2 -E usm:25,2 -a avg_br.png -E
+    gradient,br``
 
 - bias subtraction
 - flat correction
 
   - for dust and vignetting removal
+
+- when applying to single image, skip Stack
+
+  - also remove requirement for command-line switch for a stack
+
+Python3
+-------
+
+- Get things ready for Python3
+
+  - replace PythonMagick with Wand
+  - check other parts

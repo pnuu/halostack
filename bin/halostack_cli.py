@@ -29,6 +29,8 @@ from halostack.helpers import (get_filenames, parse_enhancements,
                                get_two_points, read_config)
 import argparse
 import logging
+import platform
+import os
 
 # log pattern
 LOG_FMT = '%(asctime)s - %(name)s - %(levelname)s: %(message)s'
@@ -84,16 +86,12 @@ def halostack_cli(args):
 
     images = args['fname_in']
 
-    if len(images) == 0:
-        LOGGER.error("No images given.")
-        LOGGER.error("Exiting.")
-        return
-
     stacks = []
     for stack in args['stacks']:
         stacks.append(Stack(stack, len(images), nprocs=args['nprocs']))
 
-    base_img = Image(fname=images[0], nprocs=args['nprocs'])
+    base_img_fname = images[0]
+    base_img = Image(fname=base_img_fname, nprocs=args['nprocs'])
     LOGGER.debug("Using %s as base image.", base_img.fname)
     images.remove(images[0])
 
@@ -127,18 +125,24 @@ def halostack_cli(args):
         aligner.set_search_area(args['focus_area'])
         LOGGER.debug("Alignment initialized.")
 
+    if args['save_prefix'] is not None:
+        fname = args['save_prefix'] + '_' + \
+            os.path.splitext(base_img_fname)[0] + '.png'
+        base_img.save(fname)
+
     if len(args['enhance_images']) > 0:
         LOGGER.info("Preprocessing image.")
         base_img.enhance(args['enhance_images'])
+
     for stack in stacks:
         stack.add_image(base_img)
 
     # memory management
     del base_img
 
-    for img in images:
+    for img_fname in images:
         # Read image
-        img = Image(fname=img, nprocs=args['nprocs'])
+        img = Image(fname=img_fname, nprocs=args['nprocs'])
 
         if not args['no_alignment'] and len(images) > 1:
             # align image
@@ -148,9 +152,15 @@ def halostack_cli(args):
             LOGGER.warning("Skipping image.")
             continue
 
+        if args['save_prefix'] is not None:
+            fname = args['save_prefix'] + '_' + \
+                os.path.splitext(img_fname)[0] + '.png'
+            img.save(fname)
+
         if len(args['enhance_images']) > 0:
             LOGGER.info("Preprocessing image.")
             img.enhance(args['enhance_images'])
+
         for stack in stacks:
             stack.add_image(img)
 
@@ -178,7 +188,7 @@ def main():
                         dest="correlation_threshold",
                         default=None, metavar="NUM", type=float,
                         help="Minimum required correlation [0.7]")
-    parser.add_argument("-s", "--save-images", dest="save_postfix",
+    parser.add_argument("-s", "--save-images", dest="save_prefix",
                         default=None, metavar="STR",
                         help="Save aligned images as PNG with the given " \
                             "filename postfix")
@@ -229,6 +239,10 @@ def main():
         args['correlation_threshold'] = 0.7
     if not isinstance(args['no_alignment'], bool):
         args['no_alignment'] = False
+    if platform.system() == 'Windows':
+        LOGGER.warning("Your operting system is Windows, "
+                       "so limiting to one processor.")
+        args['nprocs'] = 1
 
     # Check which stacks will be made
     stacks = []
@@ -252,13 +266,19 @@ def main():
     args['stacks'] = stacks
     args['stack_fnames'] = stack_fnames
 
+    # Check if there's anything to do
+    if len(args['stacks']) == 0 and args['save_prefix'] is None or \
+            len(args['fname_in']) == 0:
+        LOGGER.error("Nothing to do.")
+        parser.print_help()
+        return
+
     LOGGER.info("Starting stacking")
 
     halostack_cli(args)
 
 
 if __name__ == "__main__":
-#    global LOGGER
     # Setup logging
     import logging.config
     logging.config.dictConfig(LOG_CONFIG)
