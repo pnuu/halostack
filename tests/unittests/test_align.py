@@ -14,7 +14,9 @@ class TestAlign(unittest.TestCase):
         # area to search (whole image)
         srch_area = [0, 0, 31, 31]
 
-        self.align = Align(img, ref_loc=ref_loc, srch_area=srch_area)
+        self.align = Align(img)
+        self.align.set_reference(ref_loc)
+        self.align.set_search_area(srch_area)
 
     def test_simple_match(self):
         # image to be matched

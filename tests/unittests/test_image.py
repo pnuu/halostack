@@ -1,6 +1,6 @@
 import unittest
 import os
-from halostack.image import Image
+from halostack.image import Image, _scale
 import numpy as np
 
 class TestImage(unittest.TestCase):
@@ -138,27 +138,27 @@ class TestImage(unittest.TestCase):
         self.assertItemsEqual(correct_result, img.img)
 
     def test_scale_values(self):
-        self.img_rand8._scale(8)
+        self.img_rand8.img = _scale(self.img_rand8.img, 8)
         self.assertTrue(self.img_rand8.img.dtype == 'uint8')
         self.assertTrue(self.img_rand8.min() == 0)
         self.assertTrue(self.img_rand8.max() == 255)
 
-        self.img_rand16._scale(16)
+        self.img_rand16.img = _scale(self.img_rand16.img, 16)
         self.assertTrue(self.img_rand16.img.dtype == 'uint16')
         self.assertTrue(self.img_rand16.min() == 0)
         self.assertTrue(self.img_rand16.max() == 2**16-1)
 
-        self.img_rand_big1._scale(8)
+        self.img_rand_big1.img = _scale(self.img_rand_big1.img, 8)
         self.assertTrue(self.img_rand_big1.img.dtype == 'uint8')
         self.assertTrue(self.img_rand_big1.min() == 0)
         self.assertTrue(self.img_rand_big1.max() == 255)
 
-        self.img_rand_big2._scale(16)
+        self.img_rand_big2.img = _scale(self.img_rand_big2.img, 16)
         self.assertTrue(self.img_rand_big2.img.dtype == 'uint16')
         self.assertTrue(self.img_rand_big2.min() == 0)
         self.assertTrue(self.img_rand_big2.max() == 2**16-1)
 
-        self.img_rand_neg._scale(8)
+        self.img_rand_neg.img = _scale(self.img_rand_neg.img, 8)
         self.assertTrue(self.img_rand_neg.min() >= 0)
 
     def assertItemsEqual(self, a, b):
