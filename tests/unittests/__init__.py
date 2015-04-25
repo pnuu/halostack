@@ -23,15 +23,23 @@
 """The tests package.
 """
 
-from . import test_halostack
 import unittest
 import doctest
+from . import test_helpers
+from . import test_image
+from . import test_align
+from . import test_stack
+from . import test_halostack
 
 def suite():
     """The global test suite.
     """
     mysuite = unittest.TestSuite()
     # Use the unittests also
+    mysuite.addTests(test_helpers.suite())
+    mysuite.addTests(test_image.suite())
+    mysuite.addTests(test_align.suite())
+    mysuite.addTests(test_stack.suite())
     mysuite.addTests(test_halostack.suite())
     
     return mysuite

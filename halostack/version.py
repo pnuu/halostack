@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014 Panu Lahtinen
+# Copyright (c) 2014, 2015 Panu Lahtinen
 
 # Author(s):
 
@@ -24,7 +24,7 @@
 """
 
 __major__ = "0"
-__minor__ = "0"
+__minor__ = "1"
 __patch__ = "0"
 
 __version__ = "v" + ".".join([__major__, __minor__, __patch__])

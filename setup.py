@@ -24,12 +24,12 @@
 """
 from setuptools import setup
 import imp
-
-version = imp.load_source('halostack.version', 'halostack/version.py')
+from halostack import __version__
+# version = imp.load_source('halostack.version', 'halostack/version.py')
 
 setup(name="halostack",
-      version=version.__version__,
-      description='Halo photograph stacker',
+      version=__version__,
+      description='Halostack for stacking and enhancing halo photos',
       author='Panu Lahtinen',
       author_email='pnuu+git@iki.fi',
       classifiers=["Development Status :: 3 - Alpha",
