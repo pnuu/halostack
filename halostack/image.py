@@ -619,7 +619,7 @@ class Image(object):
         self.img.shade(*args)
 
     def _blur_im(self, args):
-        '''Blur the image.
+        '''Blur the image using ImageMagick.
         '''
         self._to_imagemagick()
         # args['radius'], args['weight'])
@@ -635,8 +635,13 @@ class Image(object):
         shape = self.img.shape
         if args is None:
             radius = int(np.min(shape[:2])/20.)
+            sigma = radius/3.
         else:
             radius = args[0]
+            if len(args) > 1:
+                sigma = args[1]
+            else:
+                sigma = radius/3.
 
         def form_blur_data(data, radius):
             '''Form vectors for blur.
@@ -648,10 +653,34 @@ class Image(object):
 
             return vect
 
-        LOGGER.debug("Blur radius is %.0lf pixels.", radius)
-        LOGGER.debug("Using %d threads.", self._nprocs)
+        def gaussian_kernel(radius, sigma):
+            ''' Generate a gaussian convolution kernel.
 
-        kernel = np.ones(2*radius)/(2*radius)
+            'param radius: kernel radius in pixels
+            'type radisu: int
+            'param sigma': standard deviation of the gaussian in pixels
+            'type sigma: float
+            '''
+
+            sigma2 = sigma**2
+
+            half_kernel = map(lambda x: 1/(2 * np.pi * sigma2) * \
+                                  np.exp(-x**2 / (2 * sigma2)),
+                              range(radius+1))
+            kernel = np.zeros(2*radius+1)
+            kernel[radius:] = half_kernel
+            kernel[:radius+1] = half_kernel[::-1]
+            kernel /= np.sum(kernel)
+
+            print sigma2
+
+            return kernel
+
+        kernel = gaussian_kernel(radius, sigma)
+
+        LOGGER.debug("Blur radius is %.0lf pixels and sigma is %.3lf.",
+                     radius, sigma)
+        LOGGER.debug("Using %d threads.", self._nprocs)
 
         if self._nprocs > 1:
             self._pool = Pool(self._nprocs)
