@@ -326,11 +326,12 @@ Gradient removal
 ++++++++++++++++
 
 Sky tends to have gradients.  This method tries to reduce their effect
-by applying a blur to the luminance of the image and subtracting this
-from all the color channels.  Although each image has different
-gradients, it is better to apply this method only in *postprocessing*
-so that the images stay similar.  By default the blur radius is 1/20th
-of the smaller image dimension::
+by applying a Gaussian blur to the luminance of the image and
+subtracting this from all the color channels.  Although each image has
+different gradients, it is better to apply this method only in
+*postprocessing* so that the images stay similar.  By default the blur
+radius is 1/20th of the smaller image dimension and the standard
+deviation (sigma) 1/3rd of the radius::
 
   -E gradient
 
@@ -338,11 +339,16 @@ The radius can be given as a parameter::
 
   -E gradient:50
 
+as well as the standard deviation of the kernel::
+
+  -E gradient:50,20
+
+The smaller the sigma is, the smaller the influence of the more remote
+values are.  The default of 1/3rd of the radius seems to work well.
+
 Gradient removal benefits from using multiple processors, see ``-p``
 command-line parameter.
 
-Also other methods for gradient removal are implemented, but they are
-not currently exposed via the command-line client.
 
 Luminance subtraction
 +++++++++++++++++++++
