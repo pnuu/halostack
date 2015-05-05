@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+'''Quick tool to apply B-R, G-R and USM processing to halo images.
+'''
+
 from halostack.image import Image, to_numpy
 import numpy as np
 import sys
@@ -21,14 +24,19 @@ def output_name(fname, oper):
 class EnhanceWorker(core.QThread):
     '''EhanceWorker.
     '''
+
+    filename = None
+    outname = None
+    enhancement = None
+
+    result_image = core.pyqtSignal(Image)
+
     def __init__(self, parent=None, fname=None, outname=None, ench=None):
         super(EnhanceWorker, self).__init__(parent)
 
         self.filename = fname
         self.outname = outname
         self.enhancement = ench
-
-        self.result_image = core.pyqtSignal(Image)
 
     def run(self):
         '''Run enhancements.
@@ -49,11 +57,12 @@ class EnhanceWorker(core.QThread):
 class ImageWidget(widgets.QWidget):
     '''ImageWidget.
     '''
+    image = None
+    img = None
+    data = None
+
     def __init__(self, parent=None):
         widgets.QWidget.__init__(self, parent)
-        self.image = None
-        self.img = None
-        self.data = None
 
     def update_from_hs_image(self, image):
         '''Update from hs image.
@@ -90,13 +99,13 @@ class ImageWidget(widgets.QWidget):
         self.img = gui.QImage(filename)
         self.update()
 
-    def paint_event(self, event):
+    def paintEvent(self, event):
         '''Paint event.
         '''
         painter = gui.QPainter(self)
 
         if self.img is None:
-            painter.eraseRect(event.rect()) 
+            painter.eraseRect(event.rect())
             return
 
         geo = self.geometry()
@@ -121,14 +130,16 @@ class ImageWidget(widgets.QWidget):
 class EnhanceWidget(widgets.QWidget):
     '''EnhanceWidget.
     '''
+    buttons = None
+    image = None
+    fileName = None
+    outname = None
+    oper_name = None
+    enhancement = None
+
     def __init__(self, parent=None, operation="unknown"):
         widgets.QWidget.__init__(self, parent)
-        self.buttons = None
-        self.image = None
-        self.filename = None
-        self.outname = None
         self.oper_name = operation
-        self.enhancement = None
 
         box = widgets.QVBoxLayout(self)
         self.buttons = widgets.QHBoxLayout()
@@ -173,14 +184,16 @@ class EnhanceWidget(widgets.QWidget):
 class USMWidget(EnhanceWidget):
     '''USMWidget.
     '''
+
+    radius = 40.0
+    sigma = 20.0
+    gain = 2.5
+    rspin = None
+    sspin = None
+    gspin = None
+
     def __init__(self, parent=None):
         EnhanceWidget.__init__(self, parent, "usm")
-        self.radius = 40.0
-        self.sigma = 20.0
-        self.gain = 2.5
-        self.rspin = None
-        self.sspin = None
-        self.gspin = None
 
         lbl = widgets.QLabel("Radius")
         self.buttons.addWidget(lbl)
@@ -196,7 +209,7 @@ class USMWidget(EnhanceWidget):
         self.sspin = widgets.QDoubleSpinBox()
         self.sspin.setMinimum(0.0)
         self.sspin.setMaximum(1000.0)
-        self.sspin.setSingleStep(lbl)
+        self.sspin.setSingleStep(1)
         self.sspin.setValue(self.sigma)
         self.sspin.valueChanged.connect(self.update_sigma)
         self.buttons.addWidget(self.sspin)
@@ -210,7 +223,7 @@ class USMWidget(EnhanceWidget):
         self.gspin.valueChanged.connect(self.update_gain)
         self.buttons.addWidget(self.gspin)
         self.buttons.addStretch(1)
-        btn = widgets.QPushButton("Toteuta")
+        btn = widgets.QPushButton("Apply")
         btn.clicked.connect(self.enhance)
         self.buttons.addWidget(btn)
         self.update_enhancement()
@@ -242,12 +255,13 @@ class USMWidget(EnhanceWidget):
 class BRWidget(EnhanceWidget):
     '''BRWidget
     '''
+
+    oper = "br"
+    multiplier = None
+    spin = None
+
     def __init__(self, parent=None):
         EnhanceWidget.__init__(self, parent, "br")
-
-        self.oper = "br"
-        self.multiplier = None
-        self.spin = None
 
         btn = widgets.QCheckBox("Red - Green")
         btn.setCheckState(0)
@@ -281,7 +295,7 @@ class BRWidget(EnhanceWidget):
         if state == 0:
             self.oper = 'br'
         else:
-            self.oper = 'rg'
+            self.oper = 'gr'
 
         self.update_enhancement()
         self.enhance()
@@ -307,19 +321,19 @@ class BRWidget(EnhanceWidget):
 class HaloWindow(widgets.QWidget):
     '''HaloWindow Widget.
     '''
+    filename = None
+    orig_image = None
+    usm_widget = None
+    usm_worker = None
+    br_image = None
+    br_box = None
+    br_worker = None
+    combo = None
+    save_button = None
+    vahti_button = None
+
     def __init__(self, parent=None):
         widgets.QWidget.__init__(self, parent)
-
-        self.filename = None
-        self.orig_image = None
-        self.usm_widget = None
-        self.usm_worker = None
-        self.br_image = None
-        self.br_box = None
-        self.br_worker = None
-        self.combo = None
-        self.save_button = None
-        self.vahti_button = None
 
         vsplit = widgets.QVBoxLayout(self)
         htop = widgets.QHBoxLayout()
@@ -378,7 +392,7 @@ class HaloWindow(widgets.QWidget):
             self.filename = png_name
         self.setWindowTitle(self.filename)
         self.orig_image.setPixmap(gui.QPixmap(self.filename).\
-									  scaledToHeight(128))
+                                      scaledToHeight(128))
         self.combo.setCurrentIndex(0)
         self.stack.currentWidget().hide()
 
