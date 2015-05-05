@@ -150,7 +150,7 @@ class EnhanceWidget(widgets.QWidget):
     '''
     buttons = None
     image = None
-    fileName = None
+    filename = None
     outname = None
     oper_name = None
     enhancement = None
@@ -454,7 +454,7 @@ class HaloWindow(widgets.QWidget):
         '''
         dialog = widgets.QFileDialog()
         dialog.setAcceptMode(1)
-        dialog.selectFile(self.stack.currentWidget().outName)
+        dialog.selectFile(self.stack.currentWidget().outname)
 
         dialog.exec_()
 
