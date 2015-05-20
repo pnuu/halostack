@@ -243,6 +243,28 @@ class Image(object):
 
             * ``float``: multiplier for blue channel [``mean(red/green)``]
 
+        * ``gr``: Green - Red
+
+          * possible calls:
+
+            * ``{'gr': None}``
+            * ``{'gr': float}``
+
+          * optional arguments:
+
+            * ``float``: multiplier for red channel [``mean(green/red)``]
+
+        * ``bg``: Blue - Green
+
+          * possible calls:
+
+            * ``{'bg': None}``
+            * ``{'bg': float}``
+
+          * optional arguments:
+
+            * ``float``: multiplier for blue channel [``mean(blue/green)``]
+
         * ``emboss``: emboss image using *ImageMagick*
 
           * possible calls:
@@ -276,17 +298,6 @@ class Image(object):
           * optional arguments:
 
             * ``float`` (blur radius) [``min(image dimensions)/20``]
-
-        * ``gr``: Green - Red
-
-          * possible calls:
-
-            * ``{'gr': None}``
-            * ``{'gr': float}``
-
-          * optional arguments:
-
-            * ``float``: multiplier for red channel [``mean(green/red)``]
 
         * ``rgb_sub``: Subtract luminance from each color channel
 
@@ -345,6 +356,7 @@ class Image(object):
                      'gamma': self._gamma,
                      'br': self._blue_red_subtract,
                      'gr': self._green_red_subtract,
+                     'bg': self._blue_green_subtract,
                      'rgb_sub': self._rgb_subtract,
                      'rgb_mix': self._rgb_mix,
                      'gradient': self._remove_gradient,
@@ -389,6 +401,13 @@ class Image(object):
         '''
         LOGGER.debug("Calculating channel difference, Green - Red.")
         self._channel_difference(1, 0, multiplier=args)
+
+    def _blue_green_subtract(self, args):
+        '''Subtract green channel from the blue channel after scaling
+        the green channel using the supplied multiplier.
+        '''
+        LOGGER.debug("Calculating channel difference, Blue - Green.")
+        self._channel_difference(2, 1, multiplier=args)
 
     def _rgb_subtract(self, args):
         '''Subtract mean(r,g,b) from all the channels.
@@ -657,7 +676,7 @@ class Image(object):
             ''' Generate a gaussian convolution kernel.
 
             'param radius: kernel radius in pixels
-            'type radisu: int
+            'type radius: int
             'param sigma': standard deviation of the gaussian in pixels
             'type sigma: float
             '''
@@ -671,8 +690,6 @@ class Image(object):
             kernel[radius:] = half_kernel
             kernel[:radius+1] = half_kernel[::-1]
             kernel /= np.sum(kernel)
-
-            print sigma2
 
             return kernel
 
