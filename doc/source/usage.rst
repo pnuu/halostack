@@ -314,13 +314,27 @@ to check what is the initial estimate from the automatic version.
 Green - Red
 +++++++++++
 
-The Green - Red method is otherwise equal to the Blue - Red method described
-above, but in this case the first channel is different.
+The Green - Red method is otherwise equal to the Blue - Red method
+described above, but in this case the first channel is different.  May
+yield better results thatn Blue - Red in some cases.
 
 Syntax::
 
   -E gr
   -E gr:1.5
+
+Blue - Green
++++++++++++
+
+The Blue - Green method is otherwise equal to the Blue - Red method
+described above, but in this case the channels re different.  This
+method can be handy when trying to reveal the fifth order rainbow
+between the primary and secondary rainbows.
+
+Syntax::
+
+  -E bg
+  -E bg:1.5
 
 Gradient removal
 ++++++++++++++++
