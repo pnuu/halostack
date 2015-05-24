@@ -115,6 +115,9 @@ def get_image_coordinates(img_in, num):
     :type num: int
     '''
 
+    # convert to numpy
+    img_in.to_numpy()
+
     img = img_in.img.copy()
     if img.dtype != 'uint8':
         img -= np.min(img)

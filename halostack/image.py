@@ -720,6 +720,10 @@ class Image(object):
     def _gamma(self, args):
         '''Apply gamma correction to the image.
         '''
+        if args is None:
+            return
+        if not isinstance(args, list):
+            args = [args]
         self._to_imagemagick()
         LOGGER.debug("Apply gamma correction, gamma: %.2lf.", args[0])
         self.img.gamma(args[0])
