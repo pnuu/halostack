@@ -162,6 +162,17 @@ class Image(object):
         LOGGER.info("Reading image %s.", self.fname)
         self.img = PMImage(self.fname)
 
+    def set_dtype(self, dtype):
+        '''Set image data dtype.
+
+        :param dtype: Convert to this Numpy dtype
+        :type dtype: Numpy dtype
+        '''
+        self._to_numpy()
+        LOGGER.debug('Changing dtype from %s to %s.',
+                     self.img.dtype, str(dtype))
+        self.img = self.img.astype(dtype)
+
     def to_numpy(self):
         '''Convert from PMImage to Numpy ndarray.
         '''
@@ -171,7 +182,7 @@ class Image(object):
         '''Convert from PMImage to numpy.
         '''
         if isinstance(self.img, PMImage):
-            self.img = to_numpy(self.img).astype(np.float64)
+            self.img = to_numpy(self.img)
             self.shape = self.img.shape
 
     def _to_imagemagick(self, bits=16):
@@ -818,6 +829,9 @@ def to_imagemagick(img, bits=16):
 def _scale(img, bits=16):
     '''Scale image to cover the whole bit-range.
     '''
+
+    if img.dtype.name == 'uint%d' % bits:
+        return img
 
     LOGGER.debug("Scaling image to %d bits.", bits)
 
