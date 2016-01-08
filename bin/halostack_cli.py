@@ -142,6 +142,7 @@ def halostack_cli(args):
     del base_img
     base_img = None
 
+    skipped_images = []
     for img_fname in images:
         # Read image
         img = Image(fname=img_fname, nprocs=args['nprocs'])
@@ -152,6 +153,7 @@ def halostack_cli(args):
 
         if img is None:
             LOGGER.warning("Skipping image.")
+            skipped_images.append(img_fname)
             continue
 
         if args['save_prefix'] is not None:
@@ -176,6 +178,14 @@ def halostack_cli(args):
         img = stacks[i].calculate()
         img.save(args['stack_fnames'][i],
                  enhancements=args['enhance_stacks'])
+
+    if len(images) > 1:
+        LOGGER.info("Stacked %d/%d images.", len(images)-len(skipped_images),
+                    len(images))
+    if len(skipped_images) > 0:
+        LOGGER.warning("Images that were not used: %s",
+                       '\n\t' + '\n\t'.join(skipped_images))
+
 
 def main():
     '''Main. Only commandline and config file parsing is done here.'''
