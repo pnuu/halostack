@@ -44,3 +44,5 @@ docs/_build/
 # PyBuilder
 target/
 
+# Emacs temporary files
+*~
