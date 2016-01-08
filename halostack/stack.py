@@ -28,6 +28,8 @@ from halostack.image import Image
 
 LOGGER = logging.getLogger(__name__)
 
+STACK_DTYPE = np.float64
+
 class Stack(object):
     '''Class for image stacks.
 
@@ -103,6 +105,7 @@ class Stack(object):
         '''
 
         if self.stack is None:
+            img.set_dtype(STACK_DTYPE)
             self.stack = img
         else:
             self.stack += img
