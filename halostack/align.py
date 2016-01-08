@@ -55,6 +55,7 @@ class Align(object):
         modes = {'simple': self._simple_match}
 
         self.img = img
+        self._img_shape = list(self.img.shape)
         self.correlation_threshold = cor_th
         self._nprocs = nprocs
 
@@ -76,12 +77,13 @@ class Align(object):
             self.align_func = self._simple_match
 
         # default to search from the whole image
-        y_size, x_size = self.img.shape[:2]
+        y_size, x_size = self._img_shape[:2]
         self.srch_area = [0, 0, y_size, x_size]
 
 
     def set_reference(self, area):
-        '''Set the reference area *area*.
+        '''Set the reference area *area*. Also deletes the full sized
+        image that was used to initialize aligner to save memory.
 
         :param area: 3-tuple of the form (x, y, radius)
         :type area: list or tuple
@@ -90,6 +92,7 @@ class Align(object):
                      area[0], area[1], area[2])
         self.ref_loc = area
         self._set_ref()
+        self.img = None
 
     def set_search_area(self, area):
         '''Set the reference search area *area*.
@@ -131,10 +134,9 @@ class Align(object):
         '''Set reference values.
         '''
         self.ref = self.img[self.ref_loc[1]-self.ref_loc[2]:\
-                                self.ref_loc[1]+self.ref_loc[2]+1,
+                                self.ref_loc[1]+self.ref_loc[2] + 1,
                             self.ref_loc[0]-self.ref_loc[2]:\
-                                self.ref_loc[0]+self.ref_loc[2]+1]
-
+                                self.ref_loc[0]+self.ref_loc[2] + 1].copy()
 
     def _find_reference(self, img):
         '''Find the reference area from the given image.
@@ -241,9 +243,9 @@ class Align(object):
         '''
         LOGGER.debug("Calculating shift ranges.")
         # width of the portion to be moved
-        width = self.img.shape[1] - int(np.fabs(x_shift))
+        width = self._img_shape[1] - int(np.fabs(x_shift))
         # height of the portion to be moved
-        height = self.img.shape[0] - int(np.fabs(y_shift))
+        height = self._img_shape[0] - int(np.fabs(y_shift))
 
         # Calculate the corner indices of the area to be moved
         if x_shift < 0:
