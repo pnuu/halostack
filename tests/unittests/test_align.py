@@ -7,14 +7,14 @@ class TestAlign(unittest.TestCase):
     
     def setUp(self):
         # reference image
-        img = np.zeros((31, 31, 3))
-        img[15, 15, :] = 1
+        self.img = np.zeros((31, 31, 3))
+        self.img[15, 15, :] = 1
         # reference area: center_y, center_x, dim/2-1
         ref_loc = (15, 15, 2)
         # area to search (whole image)
         srch_area = [0, 0, 31, 31]
 
-        self.align = Align(img, nprocs=1)
+        self.align = Align(self.img, nprocs=1)
         self.align.set_reference(ref_loc)
         self.align.set_search_area(srch_area)
 
@@ -41,7 +41,7 @@ class TestAlign(unittest.TestCase):
             self.assertItemsEqual(result[i], correct_result[i])
 
     def test_shift(self):
-        img2 = self.align._shift(self.align.img, 2, -3)
+        img2 = self.align._shift(self.img, 2, -3)
         correct_result = np.zeros((31, 31, 3))
         correct_result[12, 17, :] = 1
         self.assertTrue(np.allclose(img2, correct_result))
