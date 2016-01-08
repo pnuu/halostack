@@ -14,10 +14,12 @@ tail.append('png')
 tail = 'br_' + '.'.join(tail)
 out_fname = os.path.join(head, tail)
 
-# the actual halostack bit is only three lines
+# the actual halostack bit is only four lines
 
 # read image
-img = Image(fname=fname_in)
+img = Image(fname=fname_in, nprocs=4)
+# change data type to 64-bit float
+img.set_dtype('float64')
 # combined gradient removal and B-R
 img.enhance({'gradient': None, 'br': None})
 # save the resulting image
