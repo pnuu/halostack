@@ -96,7 +96,7 @@ def halostack_cli(args):
     LOGGER.debug("Using %s as base image.", base_img.fname)
     images.remove(images[0])
 
-    if not args['no_alignment'] and len(images) > 1:
+    if not args['no_alignment'] and len(images) > 0:
         view_img = base_img.luminance()
         if isinstance(args['view_gamma'], float):
             view_img.enhance({'gamma': args['view_gamma']})
@@ -117,7 +117,8 @@ def halostack_cli(args):
                     args['focus_area'][2])
         del view_img
 
-    if not args['no_alignment'] and len(images) > 1:
+    aligner = None
+    if not args['no_alignment'] and len(images) > 0:
         LOGGER.debug("Initializing alignment.")
         aligner = Align(base_img,
                         cor_th=args['correlation_threshold'],
@@ -139,6 +140,7 @@ def halostack_cli(args):
 
     # memory management
     del base_img
+    base_img = None
 
     for img_fname in images:
         # Read image
@@ -162,6 +164,13 @@ def halostack_cli(args):
 
         for stack in stacks:
             stack.add_image(img)
+
+        del img
+        img = None
+
+    if aligner is not None:
+        del aligner
+        aligner = None
 
     for i in range(len(stacks)):
         img = stacks[i].calculate()
