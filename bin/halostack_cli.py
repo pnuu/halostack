@@ -180,8 +180,8 @@ def halostack_cli(args):
                  enhancements=args['enhance_stacks'])
 
     if len(images) > 1:
-        LOGGER.info("Stacked %d/%d images.", len(images)-len(skipped_images),
-                    len(images))
+        LOGGER.info("Stacked %d/%d images.", len(images)+1-len(skipped_images),
+                    len(images)+1)
     if len(skipped_images) > 0:
         LOGGER.warning("Images that were not used: %s",
                        '\n\t' + '\n\t'.join(skipped_images))
@@ -260,7 +260,7 @@ def main():
     if not isinstance(args['no_alignment'], bool):
         args['no_alignment'] = False
     if platform.system() == 'Windows':
-        LOGGER.warning("Your operting system is Windows, "
+        LOGGER.warning("Your operating system is Windows, "
                        "so limiting to one processor.")
         args['nprocs'] = 1
 
