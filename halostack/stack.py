@@ -44,9 +44,10 @@ class Stack(object):
     'max' - maximum stack
     'mean' - average stack
     'median' - median stack
+    'sigma' - kappa-sigma stack
     '''
 
-    def __init__(self, mode, num, nprocs=1):
+    def __init__(self, mode, num, nprocs=1, kwargs=None):
         LOGGER.debug("Initializing %s stack for %d images.",
                      mode, num)
         self.stack = None
@@ -58,14 +59,15 @@ class Stack(object):
                                         'calc': None},
                                 'mean': {'update': self._update_mean,
                                          'calc': None},
-                                # 'sigma': {'update': self._update_deep,
-                                #          'calc': self._calculate_sigma},
+                                'sigma': {'update': self._update_deep,
+                                          'calc': self._calculate_sigma},
                                 'median': {'update': self._update_deep,
                                            'calc': self._calculate_median}}
         self._update_func = self._mode_functions[mode]['update']
         self._calculate_func = self._mode_functions[mode]['calc']
         self.num = num
         self._num = 0
+        self._kwargs = kwargs
 
     def add_image(self, img):
         '''Add a frame to the stack.
@@ -178,4 +180,48 @@ class Stack(object):
         '''Calculate the sigma-reject average of the stack and return
         the result as Image(dtype=uint16).
         '''
-        LOGGER.error("Sigma stack not implemented.")
+        shape = self.stack['R'].shape
+        img = np.zeros((shape[0], shape[1], 3), dtype=self.stack['R'].dtype)
+
+        try:
+            kappa = self._kwargs["kappa"]
+        except (TypeError, KeyError):
+            kappa = 2
+        try:
+            max_iters = self._kwargs["max_iters"]
+        except (TypeError, KeyError):
+            max_iters = self._num/4
+
+        LOGGER.info("Calculating Sigma-Kappa average.")
+
+        img[:, :, 0] = _sigma_worker(self.stack['R'], kappa, max_iters)
+        img[:, :, 1] = _sigma_worker(self.stack['G'], kappa, max_iters)
+        img[:, :, 2] = _sigma_worker(self.stack['B'], kappa, max_iters)
+
+        return Image(img=img, nprocs=self.nprocs)
+
+def _sigma_worker(data, kappa, max_iters):
+    '''Calculate kappa-sigma mean of the data.'''
+
+    shape = data.shape
+    tile_shape = (shape[-1], 1)
+    data_out = np.empty((shape[0], shape[1]), dtype=STACK_DTYPE) # data.dtype)
+
+    for i in range(shape[0]):
+        num_it = 0
+        row = np.ma.masked_equal(data[i, :, :], 0).T
+        while True:
+            avgs = np.mean(row, 0)
+            diffs = np.abs(np.tile(avgs, tile_shape) - row)
+            stds = np.std(row, 0)
+            idxs = diffs > kappa * np.tile(stds, tile_shape)
+            num_it += 1
+            if np.any(idxs):
+                row = np.ma.masked_where(idxs, row)
+            else:
+                break
+            if num_it >= max_iters:
+                break
+        data_out[i, :] = np.mean(row, 0)
+
+    return data_out

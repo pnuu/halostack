@@ -88,8 +88,10 @@ def halostack_cli(args):
     images = args['fname_in']
 
     stacks = []
-    for stack in args['stacks']:
-        stacks.append(Stack(stack, len(images), nprocs=args['nprocs']))
+    for i in range(len(args['stacks'])):
+        stacks.append(Stack(args['stacks'][i], len(images),
+                            nprocs=args['nprocs'],
+                            kwargs=args['stack_kwargs'][i]))
 
     base_img_fname = images[0]
     base_img = Image(fname=base_img_fname, nprocs=args['nprocs'])
@@ -202,6 +204,12 @@ def main():
     parser.add_argument("-d", "--median", dest="median_stack_file",
                         default=None, metavar="FILE",
                         help="Output filename of the median stack")
+    parser.add_argument("-S", "--sigma", dest="sigma_stack_file",
+                        default=None, metavar="FILE",
+                        help="Output filename of the kappa-sigma stack")
+    parser.add_argument("-k", "--kappa-sigma-params", dest="kappa_sigma_params",
+                        default=None, metavar="KAPPA,ITERATIONS",
+                        help="Kappa and iterations for the kappa-sigma stack")
     parser.add_argument("-t", "--correlation-threshold",
                         dest="correlation_threshold",
                         default=None, metavar="NUM", type=float,
@@ -267,24 +275,40 @@ def main():
     # Check which stacks will be made
     stacks = []
     stack_fnames = []
+    stack_kwargs = []
     if args['min_stack_file']:
         stacks.append('min')
         stack_fnames.append(args['min_stack_file'])
+        stack_kwargs.append(None)
         LOGGER.debug("Added minimum stack")
     if args['max_stack_file']:
         stacks.append('max')
         stack_fnames.append(args['max_stack_file'])
+        stack_kwargs.append(None)
         LOGGER.debug("Added maximum stack")
     if args['avg_stack_file']:
         stacks.append('mean')
         stack_fnames.append(args['avg_stack_file'])
+        stack_kwargs.append(None)
         LOGGER.debug("Added average stack")
     if args['median_stack_file']:
         stacks.append('median')
         stack_fnames.append(args['median_stack_file'])
+        stack_kwargs.append(None)
+        LOGGER.debug("Added median stack")
+    if args['sigma_stack_file']:
+        stacks.append('sigma')
+        stack_fnames.append(args['sigma_stack_file'])
+        if args['kappa_sigma_params']:
+            tmp = args['kappa_sigma_params'].split(',')
+            stack_kwargs.append({'kappa': float(tmp[0]),
+                                 'max_iters': int(tmp[1])})
+        else:
+            stack_kwargs.append(None)
         LOGGER.debug("Added median stack")
     args['stacks'] = stacks
     args['stack_fnames'] = stack_fnames
+    args['stack_kwargs'] = stack_kwargs
 
     # Check if there's anything to do
     if len(args['stacks']) == 0 and args['save_prefix'] is None or \
