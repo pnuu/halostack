@@ -186,11 +186,11 @@ class Stack(object):
         try:
             kappa = self._kwargs["kappa"]
         except (TypeError, KeyError):
-            kappa = 2
+            kappa = 2.0
         try:
             max_iters = self._kwargs["max_iters"]
         except (TypeError, KeyError):
-            max_iters = self._num/4
+            max_iters = max(1, self._num/8)
 
         LOGGER.info("Calculating Sigma-Kappa average.")
 
