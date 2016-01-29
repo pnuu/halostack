@@ -12,6 +12,7 @@ class TestStack(unittest.TestCase):
         self.img1 = Image(img=np.zeros((3, 3, 3), dtype=np.float))
         self.img2 = Image(img=np.zeros((3, 3, 3), dtype=np.float)+1)
         self.img3 = Image(img=np.zeros((3, 3, 3), dtype=np.float)+2)
+        self.img4 = Image(img=np.zeros((3, 3, 3), dtype=np.float)+7)
 
     def test_min_stack(self):
         stack = Stack('min', 2)
@@ -76,6 +77,20 @@ class TestStack(unittest.TestCase):
                                                              dtype=np.uint8))
         result = stack.calculate().img
         self.assertItemsEqual(result, np.ones((3, 3, 3), dtype=np.uint16))
+
+    def test_sigma_stack(self):
+        stack = Stack('sigma', 9, kwargs={'kappa': 2, 'max_iters': 1})
+        self.assertEqual(stack.mode, 'sigma')
+        self.assertEqual(stack.num, 9)
+        self.assertEqual(stack._num, 0)
+        for i in range(3):
+            stack._update_stack(self.img2)
+            stack._update_stack(self.img3)
+            stack._update_stack(self.img4)
+
+        result = stack.calculate().img
+        self.assertItemsEqual(result, 1./3. + 3 * np.ones((3, 3, 3),
+                                                          dtype=np.uint16))
 
     def assertItemsEqual(self, a, b):
         if isinstance(a, np.ndarray):
