@@ -201,10 +201,10 @@ def main():
     parser.add_argument("-M", "--max-stack", dest="max_stack_file",
                         default=None, metavar="FILE",
                         help="Output filename of the maximum stack")
-    parser.add_argument("-d", "--median", dest="median_stack_file",
+    parser.add_argument("-d", "--median-stack", dest="median_stack_file",
                         default=None, metavar="FILE",
                         help="Output filename of the median stack")
-    parser.add_argument("-S", "--sigma", dest="sigma_stack_file",
+    parser.add_argument("-S", "--sigma-stack", dest="sigma_stack_file",
                         default=None, metavar="FILE",
                         help="Output filename of the kappa-sigma stack")
     parser.add_argument("-k", "--kappa-sigma-params", dest="kappa_sigma_params",
