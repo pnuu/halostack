@@ -50,11 +50,11 @@ there's a similar area with good enough correlation and that feature
 is selected, ruining the whole stack.
 
 Alignment can benefit from multiple processors, see ``-p``
-command-line option.
+commandline option.
 
 
-Command-line options
-____________________
+Commandline options
+___________________
 
 ``python bin/halostack_cli.py [options] <list of filenames>``
 
@@ -77,6 +77,20 @@ ____________________
 
   - ``-d median_stack.png``
   - output filename of the median stack
+
+- ``-S, --sigma-stack``
+
+  - ``-S sigma_stack.png``
+  - output filename of the sigma clipped average stack
+
+- ``-k, --kappa-sigma-params``
+
+  - ``-k <kappa>,<iterations>``
+  - parameters for the sigma clipped average stack
+  - kappa: threshold how many standard deviations are allowed
+  - iterations: how many iterations to perform
+  - eg. ``-k 2.2,3`` removes all data from stack where value is more than 2.2 standard deviations from the average, and runs maximum of three iterations over the stack
+  - default: ``2.0,max(1, <number_of_images>/8)``
 
 - ``-t, --correlation-threshold``
 
@@ -148,11 +162,72 @@ ____________________
   - ``IMG_0001.jpg IMG_0002.jpg IMG_0003.jpg``
 
 
+Different stacks
+________________
+
+Average
+=======
+
+- Commandline option: ``-a average.png``
+
+In this stacking mode the images (after possible alignment) are simply
+averaged.  This is the most common one to use, as it smoothens the
+cloud movements and lowers the noise.
+
+Minimum
+=======
+
+- Commandline option: ``-m minimum.png``
+
+Collects the minimum value for each pixel from the images.  Maybe not
+that useful for halo photographs, but might still be useful for special cases.
+
+Maximum
+=======
+
+- Commandline option: ``-M maximum.png``
+
+Collects the maximum value for each pixel from the images.  Most
+common use for this stack type is surface halos, where it's nice to
+get all the distinct rays maximally visible.
+
+Median
+======
+
+- Commandline option: ``-d median.png``
+
+Calculates the median value from the images for each pixel.
+
+**NOTE**: This method keeps all the images in memory, so it's a good
+idea to scale the images to smaller size.
+
+Sigma-clipped average
+=====================
+
+- Commandline option: ``-S sigma.png``
+
+Calculates average of the images, but first discards outliers (too
+small and/or large values) iteratively.  Discarding is done in the
+following way:
+
+1. calculate average value of the stack for each pixel location
+2. find pixel locations where the value is greater than abs(kappa *x* <average value>)
+3. mask these values
+4. repeat until no data are discarded or maximum iterations are reached
+
+User can supply the maximum deviation (kappa) and number of iterations
+using commandline option ``-k``.  If these are not given, values kappa
+= 2.0 and <number of images>/8 iterations are used.
+
+**NOTE**: This method keeps all the images in memory, so it's a good idea to
+scale the images to smaller size.
+
+
 Configuration file
 __________________
 
-Everything that can be set with the command-line options can also be
-setup in a configuration file.  Command-line options will override
+Everything that can be set with the commandline options can also be
+setup in a configuration file.  Commandline options will override
 settings obtained from the configuration file.
 
 Below is an example configuration::
@@ -189,7 +264,7 @@ ________________________
 
 This *tries* to be a complete list of image pre- and post-processing
 options available in Halostack.  These enhancements can be applied
-using ``-e`` and ``-E`` command-line switches, or corresponding
+using ``-e`` and ``-E`` commandline options, or corresponding
 configuration file options ``enhance_images`` and ``enhance_stacks``.
 All the examples on the green background are used in conjunction with
 these switches (eg. ``-e br``) or given in configuration file.
@@ -212,7 +287,7 @@ Unsharp mask
 
 Unsharp mask, or USM in short, is a way to enhance halos by increasing
 the image contrast.  USM is mostly used in *postprocessing* with
-``-E`` command-line switch, but some use it also in *preprocessing*.
+``-E`` commandline switch, but some use it also in *preprocessing*.
 
 The user can give the USM four parameters:
 
@@ -257,7 +332,7 @@ Emboss
 
 Emboss makes a relief of the image based on local contrast.  In some
 cases this can show the halos more clearly.  Emboss is used in
-postprocessing with ``-E`` command-line switch.
+postprocessing with ``-E`` commandline switch.
 
 Syntax::
 
@@ -324,7 +399,7 @@ Syntax::
   -E gr:1.5
 
 Blue - Green
-+++++++++++
+++++++++++++
 
 The Blue - Green method is otherwise equal to the Blue - Red method
 described above, but in this case the channels re different.  This
@@ -361,7 +436,7 @@ The smaller the sigma is, the smaller the influence of the more remote
 values are.  The default of 1/3rd of the radius seems to work well.
 
 Gradient removal benefits from using multiple processors, see ``-p``
-command-line parameter.
+commandline parameter.
 
 
 Luminance subtraction
