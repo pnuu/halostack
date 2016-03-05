@@ -289,7 +289,7 @@ class Image(object):
             * ``float``: light source azimuth in degrees [``90``]
             * ``float``: light source elevation in degrees [``45``]
 
-        * ``gamma``: gamma correction using *ImageMagick*
+        * ``gamma``: gamma correction
 
           * possible calls:
 
@@ -752,10 +752,10 @@ class Image(object):
             return
         if not isinstance(args, list):
             args = [args]
-        self._to_imagemagick()
+        self._to_numpy()
         LOGGER.debug("Apply gamma correction, gamma: %.2lf.", args[0])
-        self.img.gamma(args[0])
-
+        self.img /= self.img.max()
+        self.img **= args[0]
 
 def _blur_worker(data_in):
     '''Worker for blurring rows in parallel.

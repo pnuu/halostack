@@ -101,7 +101,9 @@ def halostack_cli(args):
     if not args['no_alignment'] and len(images) > 0:
         view_img = base_img.luminance()
         if isinstance(args['view_gamma'], float):
+            from halostack.image import _scale
             view_img.enhance({'gamma': args['view_gamma']})
+            view_img.img = _scale(view_img.img, bits=8)
         print "\nClick tight area (two opposite corners) for "\
             "reference location.\n"
         args['focus_reference'] = get_two_points(view_img)

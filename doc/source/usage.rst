@@ -235,13 +235,13 @@ Below is an example configuration::
     # average stack from raw/tiff images with view gamma set
     [avg_from_raw]
     avg_stack_file = average.png
-    view_gamma = 1.5
+    view_gamma = 0.45
 
     # average stack from linear raw/tiff images with view gamma set
     # and USM applied to the stack
     [avg_from_raw]
     avg_stack_file = average.png
-    view_gamma = 1.5
+    view_gamma = 0.45
     enhance_stacks = usm:25,2
 
     # B-R processing without stacking
@@ -494,6 +494,21 @@ value, eg.::
 is equal to::
 
   -E stretch:0.02,0.98
+
+
+Gamma correction
+++++++++++++++++
+
+Apply gamma correction to the image.  Can be used in either of pre- or
+post-processing.
+
+Syntax::
+
+  - E gamma:0.5
+  - E gamma:2.0
+
+Values less than one makes the image lighter and greather value
+darkens the image.
 
 
 .. _Lefadeux: http://opticsaround.blogspot.fr/2013/03/le-traitement-bleu-moins-rouge-blue.html
