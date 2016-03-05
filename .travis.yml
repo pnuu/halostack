@@ -4,8 +4,9 @@ python:
   - '3.2'
 before_install:
   - sudo apt-get update -qq
-  - if [[ $TRAVIS_PYTHON_VERSION == 2* ]]; then sudo apt-get install python-numpy python-matplotlib python-pythonmagick python-wand; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then sudo apt-get install python3-matplotlib python3-numpy python-wand; fi
+  - sudo apt-get install -qq imagemagick
+  - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then sudo apt-get install -qq python-numpy python-matplotlib python-pythonmagick python-wand; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == "3.2" ]]; then pip install --user matplotlib numpy Wand; fi
 virtualenv:
   system_site_packages: true
 install:
