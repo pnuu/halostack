@@ -100,15 +100,15 @@ def halostack_cli(args):
         view_img = base_img.luminance()
         if isinstance(args['view_gamma'], float):
             view_img.enhance({'gamma': args['view_gamma']})
-        print "\nClick tight area (two opposite corners) for "\
-            "reference location.\n"
+        print("\nClick tight area (two opposite corners) for "
+              "reference location.\n")
         args['focus_reference'] = get_two_points(view_img)
         LOGGER.debug("Reference area: (%d, %d) with radius %d.",
                      args['focus_reference'][0],
                      args['focus_reference'][1],
                      args['focus_reference'][2])
-        print "Click two corner points for the area where alignment "\
-            "reference will be in every image.\n"
+        print("Click two corner points for the area where alignment "
+              "reference will be in every image.\n")
         args['focus_area'] = get_two_points(view_img)
 
         LOGGER.debug("User-selected search area: (%d, %d) with radius %d.",
