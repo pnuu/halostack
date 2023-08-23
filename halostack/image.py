@@ -541,17 +541,17 @@ class Image(object):
 
         LOGGER.debug("Calculating gradient.")
         try:
-            func = methods[args['method'].keys()[0]]
+            func = methods[list(args['method'].keys())[0]]
         except TypeError:
             LOGGER.error("Method \"%s\" not available, using method \"blur\"",
-                         args['method'].keys()[0])
+                         list(args['method'].keys())[0])
             args = {}
             args['method'] = {'blur': None}
             func = methods['blur']
         result = func(args['method'])
         shape = self.img.shape
 
-        if args['method'].keys()[0] in ['blur']:
+        if list(args['method'].keys())[0] in ['blur']:
             return result
 
         x_pts, y_pts = result
@@ -694,9 +694,9 @@ class Image(object):
 
             sigma2 = sigma**2
 
-            half_kernel = map(lambda x: 1/(2 * np.pi * sigma2) * \
+            half_kernel = list(map(lambda x: 1/(2 * np.pi * sigma2) * \
                                   np.exp(-x**2 / (2 * sigma2)),
-                              range(radius+1))
+                                   range(radius+1)))
             kernel = np.zeros(2*radius+1)
             kernel[radius:] = half_kernel
             kernel[:radius+1] = half_kernel[::-1]
@@ -777,7 +777,11 @@ def to_numpy(img):
         img.magick('RGB')
         blob = Blob()
         img.write(blob)
-        out_img = np.fromstring(blob.data, dtype='uint'+str(img.depth()))
+        try:
+            data = blob.data
+        except UnicodeDecodeError as err:
+            data = err.object
+        out_img = np.fromstring(data, dtype='uint'+str(img.depth()))
 
         height, width, chans = img.rows(), img.columns(), 3
         if img.monochrome():
