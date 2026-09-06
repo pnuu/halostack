@@ -26,7 +26,7 @@ Installing with pip
 +++++++++++++++++++
 
 Halostack runs on Windows, macOS and Linux, and needs nothing but Python
-3.9 or newer.  Every dependency is available as a binary wheel, so there is
+3.12 or newer.  Every dependency is available as a binary wheel, so there is
 no compiler and no system package to install first::
 
   $ pip install halostack

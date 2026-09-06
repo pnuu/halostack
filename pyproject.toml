@@ -7,7 +7,7 @@ name = "halostack"
 version = "0.4.0"
 description = "Stacking and enhancing photographs of ice crystal halos"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
 authors = [{name = "Panu Lahtinen", email = "pnuu+git@iki.fi"}]
@@ -16,21 +16,26 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Image Processing",
 ]
 
 # Every one of these ships binary wheels for Windows, macOS and Linux, so a
 # plain "pip install halostack" needs no compiler and no system packages.
+# The lower bounds are the oldest releases that ship wheels for Python 3.12,
+# tested together against the full suite rather than guessed at.
 dependencies = [
-    "numpy>=1.20",
-    "scipy>=1.7",
-    "imageio>=2.9",
-    "pillow>=8",
-    "tifffile>=2021.1.1",
+    "numpy>=1.26",
+    "scipy>=1.11.3",
+    "imageio>=2.31.5",
+    "pillow>=10.1",
+    "tifffile>=2023.9.26",
     # PNG is read and written through imagecodecs because Pillow cannot write
     # 16-bit RGB PNG and silently truncates one to 8 bits when reading it.
-    "imagecodecs>=2021.1.1",
-    "matplotlib>=3.3",
+    "imagecodecs>=2024.6.1",
+    "matplotlib>=3.8",
 ]
 
 [project.optional-dependencies]

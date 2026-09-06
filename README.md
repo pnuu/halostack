@@ -17,7 +17,7 @@ Installation
 pip install halostack          # add [raw] for camera raw files
 ```
 
-Runs on Windows, macOS and Linux with Python 3.9 or newer. Every dependency
+Runs on Windows, macOS and Linux with Python 3.12 or newer. Every dependency
 ships as a binary wheel, so there is nothing to compile and no system package
 to install first.
 

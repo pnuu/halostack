@@ -31,14 +31,10 @@ jobs:
         # version-specific failure almost always shows up on both platforms;
         # a platform-specific one shows up on any version.
         os: [ubuntu-latest, windows-latest]
-        python-version: ['3.9', '3.13']
+        python-version: ['3.12', '3.14']
         include:
           - os: ubuntu-latest
-            python-version: '3.10'
-          - os: ubuntu-latest
-            python-version: '3.11'
-          - os: ubuntu-latest
-            python-version: '3.12'
+            python-version: '3.13'
 
     steps:
       - uses: actions/checkout@v4
