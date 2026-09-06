@@ -26,6 +26,7 @@ Contents
    installation
    usage
    examples
+   modules
    plan
 
 

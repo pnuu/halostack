@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "halostack"
+version = "0.4.0"
+description = "Stacking and enhancing photographs of ice crystal halos"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [{name = "Panu Lahtinen", email = "pnuu+git@iki.fi"}]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Image Processing",
+]
+
+# Every one of these ships binary wheels for Windows, macOS and Linux, so a
+# plain "pip install halostack" needs no compiler and no system packages.
+dependencies = [
+    "numpy>=1.20",
+    "scipy>=1.7",
+    "imageio>=2.9",
+    "pillow>=8",
+    "tifffile>=2021.1.1",
+    # PNG is read and written through imagecodecs because Pillow cannot write
+    # 16-bit RGB PNG and silently truncates one to 8 bits when reading it.
+    "imagecodecs>=2021.1.1",
+    "matplotlib>=3.3",
+]
+
+[project.optional-dependencies]
+raw = ["rawpy>=0.15"]
+tests = ["pytest>=6"]
+
+[project.urls]
+Homepage = "https://github.com/pnuu/halostack"
+Documentation = "http://halostack.readthedocs.org/"
+
+[project.scripts]
+halostack_cli = "halostack.cli:main"
+halostack_br = "halostack.bin_br:main"
+
+[tool.setuptools]
+packages = ["halostack"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

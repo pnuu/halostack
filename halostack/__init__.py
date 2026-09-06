@@ -20,11 +20,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-"""Version file.
-"""
+"""Image stacking for ice crystal halo photographs."""
 
 __major__ = "0"
-__minor__ = "3"
-__patch__ = "3"
+__minor__ = "4"
+__patch__ = "0"
 
 __version__ = "v" + ".".join([__major__, __minor__, __patch__])

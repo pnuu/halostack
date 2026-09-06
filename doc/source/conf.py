@@ -13,11 +13,10 @@
 
 import sys, os
 from halostack import __major__, __minor__, __patch__, __version__
-import mock
- 
-MOCK_MODULES = ['numpy', 'matplotlib', 'matplotlib.pyplot', 'PythonMagick']
-for mod_name in MOCK_MODULES:
-    sys.modules[mod_name] = mock.Mock()
+
+# Every runtime dependency installs as a binary wheel, so autodoc can simply
+# import them; only the optional raw-file reader is mocked.
+autodoc_mock_imports = ['rawpy']
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
