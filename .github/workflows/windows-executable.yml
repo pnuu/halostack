@@ -1,0 +1,130 @@
+name: Windows executable
+
+# Builds Halostack into a single self-contained halostack_cli.exe that runs on
+# a Windows machine with no Python installed.
+
+on:
+  push:
+    branches: [master]
+    tags: ['v*']
+  pull_request:
+    paths:
+      - 'halostack/**'
+      - 'bin/**'
+      - 'packaging/**'
+      - 'pyproject.toml'
+      - '.github/workflows/windows-executable.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build halostack_cli.exe
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # Pinned rather than floating: the executable embeds this
+          # interpreter, so the version it is built with is the version it
+          # ships. All of Halostack's dependencies publish Windows wheels for
+          # 3.12, which is what keeps this build free of a compiler.
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install Halostack and the build tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ".[raw,tests]" pyinstaller
+
+      - name: Run the test suite on Windows
+        # The executable is only worth building if the code works on the
+        # platform it is being built for.
+        run: pytest -q
+
+      - name: Build the executable
+        run: pyinstaller --clean --noconfirm packaging/halostack.spec
+
+      - name: Generate images to test the executable with
+        shell: python
+        run: |
+          import numpy as np
+          from halostack import io
+
+          for number in range(3):
+              y, x = np.mgrid[0:120, 0:160]
+              frame = np.full((120, 160, 3), 0.05, dtype=np.float32)
+              disc = np.hypot(x - (80 + 3 * number), y - (60 + 2 * number)) < 12
+              frame[disc] = 0.9
+              io.write('smoke_%d.jpg' % number, frame, bits=8)
+          print("wrote three frames")
+
+      - name: Check that the executable actually works
+        # PyInstaller failures are almost always missing imports or missing
+        # data files, and they only show up when the program runs. Exercise
+        # every image backend: JPEG goes through imageio, PNG through
+        # imagecodecs and TIFF through tifffile.
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXE=dist/halostack_cli.exe
+
+          "$EXE" --version
+
+          "$EXE" -n -a smoke_avg.png -m smoke_min.png -M smoke_max.png \
+                 -d smoke_median.png -S smoke_sigma.tif -k 2.0,3 \
+                 -e gradient -E "usm:25,2" -E stretch smoke_*.jpg
+
+          for name in smoke_avg.png smoke_min.png smoke_max.png \
+                      smoke_median.png smoke_sigma.tif; do
+            test -s "$name" || { echo "::error::$EXE did not write $name"; exit 1; }
+            echo "wrote $name"
+          done
+
+          # Reading back a 16-bit PNG it wrote covers the imagecodecs path in
+          # both directions.
+          "$EXE" -n -a smoke_restack.png smoke_avg.png smoke_min.png
+          test -s smoke_restack.png
+
+      - name: Report the size of the executable
+        shell: bash
+        run: |
+          ls -l dist/halostack_cli.exe |
+            awk '{printf "halostack_cli.exe is %.1f MB\n", $5/1048576}'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: halostack_cli-windows-x64
+          path: dist/halostack_cli.exe
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    name: Attach the executable to the release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: halostack_cli-windows-x64
+
+      - name: Upload to the release for this tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          mv halostack_cli.exe "halostack_cli-${TAG}-windows-x64.exe"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+                 --title "$TAG" --generate-notes
+          gh release upload "$TAG" "halostack_cli-${TAG}-windows-x64.exe" \
+            --repo "$GITHUB_REPOSITORY" --clobber

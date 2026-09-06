@@ -33,6 +33,17 @@ def synthetic_frame(shape=(60, 80), offset=(0, 0), seed=0, blob=0.9):
 
 
 @pytest.fixture
+def make_frame():
+    """The frame builder itself, for tests that need several frames.
+
+    Exposed as a fixture rather than imported across test modules, so that
+    the suite does not depend on the repository being on sys.path -- which
+    differs between `pytest` and `python -m pytest`.
+    """
+    return synthetic_frame
+
+
+@pytest.fixture
 def frame():
     """A single synthetic frame."""
     return synthetic_frame()

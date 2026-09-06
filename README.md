@@ -18,6 +18,9 @@ Runs on Windows, macOS and Linux with Python 3.9 or newer. Every dependency
 ships as a binary wheel, so there is nothing to compile and no system package
 to install first.
 
+On Windows you can skip Python entirely: a standalone `halostack_cli.exe` is
+attached to each [release](https://github.com/pnuu/halostack/releases).
+
 Usage
 -----
 

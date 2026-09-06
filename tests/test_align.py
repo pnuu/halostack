@@ -5,13 +5,12 @@ import pytest
 
 from halostack.align import Align, normalized_cross_correlation
 from halostack.image import Image
-from tests.conftest import synthetic_frame
 
 
 @pytest.fixture
-def aligner():
+def aligner(make_frame):
     """An aligner referenced on the blob in the middle of a 60x80 frame."""
-    align = Align(Image(img=synthetic_frame()), cor_th=0.7)
+    align = Align(Image(img=make_frame()), cor_th=0.7)
     align.set_reference((40, 30, 8))
     align.set_search_area((40, 30, 20))
 
@@ -23,9 +22,9 @@ def test_default_threshold_is_usable():
     assert 0.0 <= Align(np.zeros((10, 10))).correlation_threshold <= 1.0
 
 
-def test_correlation_peaks_at_the_true_position():
+def test_correlation_peaks_at_the_true_position(make_frame):
     """A template cut from an image correlates perfectly with its origin."""
-    image = synthetic_frame()[:, :, 0]
+    image = make_frame()[:, :, 0]
     template = image[20:30, 30:40]
 
     correlation = normalized_cross_correlation(image, template)
@@ -48,19 +47,19 @@ def test_uniform_reference_does_not_divide_by_zero():
 
 
 @pytest.mark.parametrize('offset', [(0, 0), (3, 2), (-4, 3), (7, -6), (-9, 8)])
-def test_match_finds_the_shifted_reference(aligner, offset):
+def test_match_finds_the_shifted_reference(aligner, make_frame, offset):
     """The matched centre must move exactly with the blob."""
-    moved = Image(img=synthetic_frame(offset=offset, seed=1))
+    moved = Image(img=make_frame(offset=offset, seed=1))
 
     correlation, x_loc, y_loc = aligner.match(moved)
     assert correlation > 0.7
     assert (x_loc, y_loc) == (40 + offset[0], 30 + offset[1])
 
 
-def test_align_undoes_the_shift(aligner):
+def test_align_undoes_the_shift(aligner, make_frame):
     """An aligned frame must line up with the reference frame."""
-    original = synthetic_frame()
-    aligned = aligner.align(Image(img=synthetic_frame(offset=(5, -3))))
+    original = make_frame()
+    aligned = aligner.align(Image(img=make_frame(offset=(5, -3))))
 
     # Ignore the border, which the shift fills with zeros.
     assert aligned is not None

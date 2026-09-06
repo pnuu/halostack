@@ -6,6 +6,25 @@
 Installation
 ------------
 
+Windows: no installation at all
++++++++++++++++++++++++++++++++
+
+A standalone ``halostack_cli.exe`` is built for every release and can be
+downloaded from the `releases page
+<https://github.com/pnuu/halostack/releases>`_.  It contains Python and
+everything Halostack needs, so there is nothing to install: put it wherever
+you like and run it from a command prompt::
+
+  C:\photos> halostack_cli.exe -a average_stack.png *.jpg
+
+The executable is about 110 MB and takes a few seconds to start, because it
+unpacks itself into a temporary directory on each run.  Builds of the latest
+commit are also available as artifacts of the `Windows executable workflow
+<https://github.com/pnuu/halostack/actions/workflows/windows-executable.yml>`_.
+
+Installing with pip
++++++++++++++++++++
+
 Halostack runs on Windows, macOS and Linux, and needs nothing but Python
 3.9 or newer.  Every dependency is available as a binary wheel, so there is
 no compiler and no system package to install first::

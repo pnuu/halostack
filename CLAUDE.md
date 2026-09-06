@@ -86,6 +86,31 @@ release the GIL, and unlike the old process pool they behave identically on
 Windows — which is why the old "Windows is limited to one processor" warning is
 gone.
 
+## Packaging
+
+`.github/workflows/windows-executable.yml` builds a standalone
+`halostack_cli.exe` with PyInstaller, driven by `packaging/halostack.spec`.
+The spec can be run on any platform (`pyinstaller --clean --noconfirm
+packaging/halostack.spec`), which is the way to check a packaging change
+without waiting for CI.
+
+Three things in that spec are load-bearing, each found by a build that
+succeeded and then failed at run time:
+
+- `imagecodecs` must be collected wholesale — it imports one compiled module
+  per codec by name, so none is reachable from an import graph.
+- `imageio` needs its `.dist-info` copied (`copy_metadata`); it looks up its
+  own version at run time and otherwise dies with "No package metadata was
+  found for imageio" the first time a JPEG is read.
+- Its plugins must *not* be collected wholesale: that pulls in the PyAV,
+  OpenCV, GDAL and ITK bindings, whose shared libraries fail to load in ways
+  imageio's plugin search does not catch. Only the Pillow plugin is needed.
+
+The workflow runs the test suite on Windows and then exercises the built
+executable on generated images across all three image backends. Keep that
+smoke test: a PyInstaller bundle that imports cleanly can still fail on the
+first file it opens.
+
 ## Compatibility
 
 The CLI is a stable interface: every option in `doc/source/usage.rst` must keep

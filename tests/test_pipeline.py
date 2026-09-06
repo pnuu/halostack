@@ -7,7 +7,6 @@ from halostack import io
 from halostack.image import Image
 from halostack.pipeline import StackRequest, stack_images
 from halostack.ui import FixedPointSelector
-from tests.conftest import synthetic_frame
 
 # Two clicks per area: the reference around the blob, then the wider search
 # area it is looked for in.
@@ -31,7 +30,7 @@ def test_stacks_are_written(tmp_path, frame_files):
     assert Image(fname=out).shape == (60, 80, 3)
 
 
-def test_two_images_are_aligned(tmp_path, frame_files):
+def test_two_images_are_aligned(tmp_path, frame_files, make_frame):
     """Regression: with exactly two inputs alignment was silently skipped.
 
     The prompts were shown, the aligner was built, and then never used.
@@ -47,7 +46,7 @@ def test_two_images_are_aligned(tmp_path, frame_files):
     # The blob is in the same place in the stack as in the reference frame,
     # which can only happen if the second frame really was shifted back.
     stacked = result.stacks[0][1].img
-    reference = synthetic_frame()
+    reference = make_frame()
     assert np.argmax(stacked.mean(axis=2)) == np.argmax(reference.mean(axis=2))
     assert offsets[1] != (0, 0)          # the second frame really was offset
 
