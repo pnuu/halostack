@@ -5,15 +5,10 @@ name: Windows executable
 
 on:
   push:
-    branches: [master]
-    tags: ['v*']
-  pull_request:
-    paths:
-      - 'halostack/**'
-      - 'bin/**'
-      - 'packaging/**'
-      - 'pyproject.toml'
-      - '.github/workflows/windows-executable.yml'
+    # Release builds only. The pattern requires a digit after the v so that
+    # tags like "vnext" do not produce a release.
+    tags: ['v[0-9]*']
+  # Kept so that a packaging change can be checked without cutting a tag.
   workflow_dispatch:
 
 permissions:

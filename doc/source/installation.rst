@@ -18,9 +18,8 @@ you like and run it from a command prompt::
   C:\photos> halostack_cli.exe -a average_stack.png *.jpg
 
 The executable is about 110 MB and takes a few seconds to start, because it
-unpacks itself into a temporary directory on each run.  Builds of the latest
-commit are also available as artifacts of the `Windows executable workflow
-<https://github.com/pnuu/halostack/actions/workflows/windows-executable.yml>`_.
+unpacks itself into a temporary directory on each run.  It is built only for
+tagged releases, so there is no per-commit build to download.
 
 Installing with pip
 +++++++++++++++++++
