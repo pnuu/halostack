@@ -1,6 +1,9 @@
 halostack
 =========
 
+[![Tests](https://github.com/pnuu/halostack/actions/workflows/tests.yml/badge.svg)](https://github.com/pnuu/halostack/actions/workflows/tests.yml)
+[![Windows executable](https://github.com/pnuu/halostack/actions/workflows/windows-executable.yml/badge.svg)](https://github.com/pnuu/halostack/actions/workflows/windows-executable.yml)
+
 Image stacking specifically for ice-crystal halo photographs.
 
 Halostack aligns a series of exposures on a feature you pick — usually the Sun

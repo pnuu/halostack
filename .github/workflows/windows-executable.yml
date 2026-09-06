@@ -36,6 +36,7 @@ jobs:
           # 3.12, which is what keeps this build free of a compiler.
           python-version: '3.12'
           cache: pip
+          cache-dependency-path: pyproject.toml
 
       - name: Install Halostack and the build tools
         run: |
