@@ -22,9 +22,11 @@ Image input
   - python-exif for linux, windows?
   - separate CSV file needed for TIFF and/or windows?
 
-- use Wand instead of PythonMagick
+- **done**: PythonMagick has been replaced, by imageio, tifffile and
+  imagecodecs rather than by Wand, so that no ImageMagick installation is
+  needed on any platform
 
-  - provides also EXIF functionality
+  - EXIF reading is still to do; Pillow exposes it for JPEG and TIFF
 
 - possibility to give directory containing all the photos
 - possibility to give image filenames/masks in config file
@@ -70,10 +72,10 @@ Image enhancements
 
   - also remove requirement for command-line switch for a stack
 
-Python3
--------
+Python 3
+--------
 
-- Get things ready for Python3
+- **done**: Halostack requires Python 3.9 or newer
 
-  - replace PythonMagick with Wand
-  - check other parts
+  - PythonMagick removed, along with the ImageMagick dependency
+  - the processing is NumPy and SciPy throughout

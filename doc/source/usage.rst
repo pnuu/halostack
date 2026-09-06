@@ -269,18 +269,22 @@ configuration file options ``enhance_images`` and ``enhance_stacks``.
 All the examples on the green background are used in conjunction with
 these switches (eg. ``-e br``) or given in configuration file.
 
-It is recommended that ImageMagick based methods are used before Numpy
-based in *preprocessing*, and vice versa in *postprocessing*.  In this way
-there's less switching between floating point (Numpy) and integer
-(ImageMagick) datatypes and less loss in data.
+All methods work on floating point data from the moment an image is read
+until the moment it is saved, so they can be combined in any order without
+losing precision.  Earlier versions of Halostack passed some of these
+operations to ImageMagick, which meant converting the data to 8- or 16-bit
+integers and back; the order of the methods mattered as a result, and it no
+longer does.
 
-ImageMagick based methods
-=========================
+The one ordering rule left is that the channel differences (``br``, ``gr``
+and ``bg``) produce a single-channel image, so nothing that needs colour can
+follow them.
 
-These methods rely on ImageMagick processing functions.  For these to
-work, the image data needs to be converted to a format recogniced by
-ImageMagick, so some of the otherwise available data may be lost if
-the data was previously manipulated using floating point operators.
+Sharpening and shading
+======================
+
+These methods were previously computed by ImageMagick and are now computed
+with SciPy.  They produce the same kind of result from the same arguments.
 
 Unsharp mask
 ++++++++++++
@@ -356,11 +360,10 @@ Use of *linear stretching* (``stretch``, see below) is usually helpful::
 
   -E emboss -E stretch
 
-Numpy based methods
-===================
+Colour and background methods
+=============================
 
-These methods are written using mathematical functions available in
-the Numpy Python library.
+These methods work on the colour channels or on the background level.
 
 Blue - Red
 ++++++++++

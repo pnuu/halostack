@@ -1,26 +1,43 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-from halostack.image import Image
-import sys
+"""Produce a gradient-removed blue-red image from a single photograph.
+
+An example of using the Halostack library directly; the actual processing is
+the four lines at the end.
+"""
+
 import os
+import sys
 
-# input file
-fname_in = sys.argv[1]
+try:
+    from halostack.image import Image
+except ImportError:                     # running from a source checkout
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from halostack.image import Image
 
-# form the output filename
-head, tail = os.path.split(fname_in)
-tail = tail.split('.')[:-1]
-tail.append('png')
-tail = 'br_' + '.'.join(tail)
-out_fname = os.path.join(head, tail)
 
-# the actual halostack bit is only four lines
+def main(argv=None):
+    """Process the file named on the command line."""
+    argv = sys.argv[1:] if argv is None else argv
+    if len(argv) != 1:
+        print("Usage: halostack_br.py <image file>")
+        return 1
 
-# read image
-img = Image(fname=fname_in, nprocs=4)
-# change data type to 64-bit float
-img.set_dtype('float64')
-# combined gradient removal and B-R
-img.enhance({'gradient': None, 'br': None})
-# save the resulting image
-img.save(out_fname)
+    fname_in = argv[0]
+    head, tail = os.path.split(fname_in)
+    out_fname = os.path.join(head, 'br_' + os.path.splitext(tail)[0] + '.png')
+
+    # read image
+    img = Image(fname=fname_in)
+    # combined gradient removal and B-R
+    img.enhance({'gradient': None, 'br': None})
+    # save the resulting image
+    img.save(out_fname)
+    print("Wrote %s" % out_fname)
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
