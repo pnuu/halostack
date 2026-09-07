@@ -9,6 +9,12 @@ Halostack aligns a series of exposures on a feature you pick — usually the Sun
 behind a blocker — combines them into one or more stacks, and applies
 enhancements that make faint halos visible.
 
+![The Halostack window: the stacked image on the left, the settings on the right](doc/source/images/gui.png)
+
+*Six exposures aligned on the Sun and combined, with the background gradient
+removed and an unsharp mask applied. The green box is the alignment
+reference, the orange one the area it is searched for in each frame.*
+
 Installation
 ------------
 
