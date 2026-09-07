@@ -26,10 +26,20 @@ can keep calling ``halostack_cli``.
 The window
 __________
 
+.. image:: images/gui.png
+   :alt: The Halostack window, with the stacked image on the left and the
+         settings on the right.
+
 Everything below can be set in the window as well, and the layout follows the
 same order: the images, the alignment, the stacks to produce, the image
 processing, and the output settings.  The image being worked on is shown on
 the left of a divider that can be dragged to give either side more room.
+
+Above, six exposures have been aligned on the Sun and combined into an average
+and a kappa-sigma stack, with the background gradient removed from each
+exposure and an unsharp mask and a linear stretch applied to the result.  The
+green box is the alignment reference and the orange one the area it is
+searched for in each of the remaining exposures.
 
 Alignment areas are dragged out on the preview rather than clicked as two
 corners: press *Pick reference area*, drag a box around the Sun, then press
