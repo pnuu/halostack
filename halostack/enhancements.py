@@ -319,19 +319,23 @@ def rgb_mix(img, ratio=0.7):
 
 @register('gradient', 'Remove the background gradient.',
           [Parameter('radius', 'min(width, height) / 20',
-                     'radius of the gradient estimate in pixels')])
-def remove_gradient(img, radius=None):
+                     'radius of the gradient estimate in pixels'),
+           Parameter('sigma', 'radius / 3',
+                     'standard deviation of the gradient estimate in pixels')])
+def remove_gradient(img, radius=None, sigma=None):
     """Subtract a blurred copy of the image to flatten the background.
 
     :param img: image data
     :type img: numpy.ndarray
     :param radius: blur radius used to estimate the gradient
     :type radius: float or None
+    :param sigma: standard deviation of the Gaussian [radius / 3]
+    :type sigma: float or None
     :rtype: numpy.ndarray
     """
     LOGGER.debug("Calculating gradient.")
 
-    out = img - blur(img, radius)
+    out = img - blur(img, radius, sigma)
     minimum = out.min()
     if minimum < 0:
         out = out - minimum

@@ -8,11 +8,15 @@ a non-specifig order.  No guarantees that these will be implemented.
 GUI
 ---
 
-- full graphical user interface
+- **done**: a full graphical user interface, built with PySide6
 
-  - help needed
+  - every command line option has a control, the alignment areas are dragged
+    out on the preview, and a run can be cancelled and undone
 
-    - that is, need someone else to implement GUI
+- still to do
+
+  - a preview of what an enhancement does before it is applied
+  - remembering the window layout and the last used settings between runs
 
 Image input
 -----------

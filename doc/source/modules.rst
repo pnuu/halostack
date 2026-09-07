@@ -11,4 +11,6 @@ Halostack
    halostack_pipeline
    halostack_io
    halostack_ui
+   halostack_gui
+   halostack_launcher
    halostack_helpers

@@ -158,3 +158,26 @@ def test_too_many_arguments_is_reported(frame):
     """Extra arguments are a mistake worth naming."""
     with pytest.raises(ValueError, match='at most'):
         enh.apply_enhancement(frame, 'gamma', [1.0, 2.0, 3.0])
+
+
+def test_gradient_takes_a_radius_and_a_sigma(frame):
+    """Regression: '-E gradient:50,20' is documented and must keep working."""
+    wide = enh.remove_gradient(frame, 20, 12)
+    narrow = enh.remove_gradient(frame, 20, 2)
+
+    assert wide.shape == frame.shape
+    # A wider kernel leaves less of the background behind.
+    assert not np.allclose(wide, narrow)
+
+
+def test_gradient_is_the_image_minus_its_own_blur(frame):
+    """gradient is defined that way, up to the offset it adds.
+
+    remove_gradient lifts its result so that no pixel is negative, so the two
+    agree only after that constant is taken back out.
+    """
+    difference = frame - enh.blur(frame, 8)
+    result = enh.remove_gradient(frame, 8)
+
+    assert result - result.min() == pytest.approx(difference - difference.min(),
+                                                  abs=1e-6)

@@ -17,7 +17,8 @@ Halostack has two interfaces, and one command chooses between them::
 An option means "do this now", so anything with a switch on it runs on the
 command line.  Nothing but filenames, or nothing at all, opens the window.
 ``--gui`` forces the window even when options are given, filling the controls
-in from them, and ``--cli`` forces the command line.
+in from them, and ``--cli`` (or ``--no-gui``) forces the command line.
+``--help`` and ``--version`` always answer on the command line.
 
 ``halostack_cli`` is always the command line and ``halostack_gui`` is always
 the window, whatever the arguments; scripts written against earlier versions
@@ -90,8 +91,10 @@ area, and that image will not be used in the stack.  Or even worse,
 there's a similar area with good enough correlation and that feature
 is selected, ruining the whole stack.
 
-Alignment can benefit from multiple processors, see ``-p``
-commandline option.
+The reference is found with a single correlation over the whole search area,
+so a larger area costs little; keeping it small still helps by making a wrong
+match less likely.  See the ``-p`` commandline option for stacking several
+exposures at a time.
 
 
 Commandline options
@@ -173,28 +176,31 @@ ___________________
   - adjust image gamma for alignment preview
   - default: ``1.0``
 
-- ``-C, --config``
+- ``-C, --config-file``
 
   - ``-C config.ini``
-  - use config file <file>
+  - read settings from this configuration file
+  - anything given on the command line wins over the file
+  - ``--config_file`` is kept as an alias for the older spelling
 
-- ``-c, --config_item``
+- ``-c, --config-item``
 
   - ``-c default``
-  - select the config item to use
+  - select the section of the configuration file to use
+  - without it, the ``[default]`` section is used
+  - ``--config_item`` is kept as an alias for the older spelling
 
 - ``-p, --nprocs``
 
   - ``-p <num>``
   - ``-p 4``
-  - set number of processors to use in computationally intensive tasks
-    such as
-    
-    - alignment
-    - gradient removal (blurring)
-
+  - number of worker threads used to overlap the per-image work: reading,
+    aligning and enhancing several exposures at a time
+  - the work inside one image is not divided, so this helps most when there
+    are many exposures to get through
   - default: ``1``
-  - unfortunately, in Windows you are limited to one thread
+  - works the same on every platform; the old restriction to one processor on
+    Windows is gone
 
 - ``<list of filenames>``
 
@@ -212,8 +218,9 @@ Average
 - Commandline option: ``-a average.png``
 
 In this stacking mode the images (after possible alignment) are simply
-averaged.  This is the most common one to use, as it smoothens the
-cloud movements and lowers the noise.
+averaged: the sum of the exposures divided by how many were used.  This is
+the most common one to use, as it smoothens the cloud movements and lowers
+the noise.
 
 Minimum
 =======
@@ -251,10 +258,16 @@ Calculates average of the images, but first discards outliers (too
 small and/or large values) iteratively.  Discarding is done in the
 following way:
 
-1. calculate average value of the stack for each pixel location
-2. find pixel locations where the value is greater than abs(kappa *x* <average value>)
+1. calculate the average and the standard deviation of the stack for each
+   pixel location
+2. find the values that differ from that average by more than *kappa*
+   standard deviations
 3. mask these values
 4. repeat until no data are discarded or maximum iterations are reached
+
+The average of whatever is left is the result.  A pixel is never left with
+nothing to average: if every value at a location would be rejected, the
+previous set is kept instead.
 
 User can supply the maximum deviation (kappa) and number of iterations
 using commandline option ``-k``.  If these are not given, values kappa
@@ -336,10 +349,12 @@ the image contrast.  USM is mostly used in *postprocessing* with
 
 The user can give the USM four parameters:
 
-* radius of the applied Gaussian blur in pixels
+* radius, the size of the detail to enhance, in pixels
 
   * this should be about the same as the dimension of the halos,
     eg. the width of parhelic circle
+  * it sets the width of the Gaussian, as ``sigma`` below, unless that is
+    given explicitly
 
 * amount
 
@@ -479,9 +494,26 @@ as well as the standard deviation of the kernel::
 The smaller the sigma is, the smaller the influence of the more remote
 values are.  The default of 1/3rd of the radius seems to work well.
 
-Gradient removal benefits from using multiple processors, see ``-p``
-commandline parameter.
+See the ``-p`` commandline parameter for processing several exposures at a
+time.
 
+
+Blur
+++++
+
+Blur the image with a Gaussian kernel.  On its own this is rarely wanted; it
+is the same operation *gradient removal* uses to estimate the background, and
+is exposed so that the estimate can be inspected.
+
+Syntax::
+
+  -E blur
+  -E blur:50
+  -E blur:50,20
+
+where the first parameter is the radius in pixels, defaulting to a twentieth
+of the smaller image dimension, and the second the standard deviation of the
+kernel, defaulting to a third of the radius.
 
 Luminance subtraction
 +++++++++++++++++++++
@@ -548,11 +580,12 @@ post-processing.
 
 Syntax::
 
-  - E gamma:0.5
-  - E gamma:2.0
+  -E gamma:0.5
+  -E gamma:2.0
 
-Values less than one makes the image lighter and greather value
-darkens the image.
+Values less than one make the image lighter, and greater values darken it.
+The image is normalised to its own maximum first, so gamma is applied to the
+full range whatever the data happened to span.
 
 
 .. _Lefadeux: http://opticsaround.blogspot.fr/2013/03/le-traitement-bleu-moins-rouge-blue.html

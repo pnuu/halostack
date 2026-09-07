@@ -11,7 +11,11 @@
 Welcome to the halostack documentation!
 =========================================
 
-Very little here, but as the software gets to first *master* branch release, there should be more-or-less complete documentation available.
+Halostack stacks and enhances photographs of ice-crystal halos.  It aligns a
+series of exposures on a feature you pick, combines them into one or more
+stacks, and applies enhancements that make faint halos visible.  There is a
+window and a command line, described under :doc:`usage`; :doc:`modules` covers
+the library behind them.
 
 The source code of the package can be found at github_.
 
