@@ -9,17 +9,22 @@ import os
 import numpy as np
 import pytest
 
-pytest.importorskip('PySide6')
-
 # Has to be set before the first QApplication is created.
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
-from PySide6.QtCore import QEventLoop, QTimer          # noqa: E402
-from PySide6.QtWidgets import QApplication             # noqa: E402
+# Not pytest.importorskip: that only skips on ModuleNotFoundError, and a
+# PySide6 whose Qt libraries are missing raises a plain ImportError naming the
+# library. Both mean the same thing here -- there is no usable Qt -- and
+# neither should turn into a collection error.
+try:
+    from PySide6.QtCore import QEventLoop, QTimer
+    from PySide6.QtWidgets import QApplication
 
-from halostack.gui.controls import ControlPanel        # noqa: E402
-from halostack.gui.main_window import MainWindow       # noqa: E402
-from halostack.gui.preview import PreviewView, to_qimage   # noqa: E402
+    from halostack.gui.controls import ControlPanel
+    from halostack.gui.main_window import MainWindow
+    from halostack.gui.preview import PreviewView, to_qimage
+except ImportError as err:                                  # pragma: no cover
+    pytest.skip("no usable PySide6: %s" % err, allow_module_level=True)
 
 
 @pytest.fixture(scope='session')
