@@ -27,7 +27,8 @@ Installing with pip
 
 Halostack runs on Windows, macOS and Linux, and needs nothing but Python
 3.12 or newer.  Every dependency is available as a binary wheel, so there is
-no compiler and no system package to install first::
+no compiler to install first, and on Windows and macOS no system package
+either::
 
   $ pip install halostack
 
@@ -50,6 +51,30 @@ without installing::
 
   $ python -m halostack.launcher      # the window, or the command line
   $ python -m halostack.cli --help
+
+Linux: one system library
++++++++++++++++++++++++++
+
+The window needs one thing pip cannot install.  Qt 6.5 and later load their
+X11 support from a plugin that requires ``libxcb-cursor``, which comes from
+the distribution rather than from PyPI.  Without it Qt stops before the
+window appears::
+
+  qt.qpa.plugin: From 6.5.0, xcb-cursor0 or libxcb-cursor0 is needed to load
+  the Qt xcb platform plugin.
+  Could not load the Qt platform plugin "xcb" in "" even though it was found.
+
+Install it with whichever of these fits your system::
+
+  $ sudo apt install libxcb-cursor0          # Debian, Ubuntu, Mint
+  $ sudo dnf install xcb-util-cursor         # Fedora, RHEL
+  $ sudo zypper install libxcb-cursor0       # openSUSE
+  $ sudo pacman -S xcb-util-cursor           # Arch
+  $ conda install -c conda-forge xcb-util-cursor
+
+Halostack checks for the library before it opens the window and prints this
+list if it is missing, rather than leaving you with Qt's message.  The
+command line does not need it, and neither does the Windows executable.
 
 Camera raw files
 ++++++++++++++++

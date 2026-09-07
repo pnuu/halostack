@@ -23,8 +23,10 @@ pip install halostack          # add [raw] for camera raw files
 ```
 
 Runs on Windows, macOS and Linux with Python 3.12 or newer. Every dependency
-ships as a binary wheel, so there is nothing to compile and no system package
-to install first.
+ships as a binary wheel, so there is nothing to compile. On Linux the window
+additionally needs `libxcb-cursor` from your distribution (`sudo apt install
+libxcb-cursor0` on Debian and Ubuntu); Halostack says so if it is missing, and
+the command line does not need it.
 
 On Windows you can skip Python entirely: a standalone `halostack.exe`, with
 both interfaces in it, is attached to each

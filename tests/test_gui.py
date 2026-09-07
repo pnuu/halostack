@@ -5,6 +5,7 @@ display; they are skipped when PySide6 is not installed.
 """
 
 import os
+import sys
 
 import numpy as np
 import pytest
@@ -263,3 +264,64 @@ def test_settings_can_seed_the_window(qt_app):
 
     assert win.controls.settings()['correlation_threshold'] == pytest.approx(0.9)
     assert win.controls.settings()['nprocs'] == 3
+
+
+# -- the libxcb-cursor pre-flight check -----------------------------------
+
+def test_missing_xcb_cursor_is_detected(monkeypatch):
+    """Qt 6.5 needs libxcb-cursor, and aborts from C++ when it is absent."""
+    from halostack import gui
+
+    monkeypatch.setattr(sys, 'platform', 'linux')
+    monkeypatch.setenv('DISPLAY', ':0')
+    monkeypatch.delenv('QT_QPA_PLATFORM', raising=False)
+    monkeypatch.delenv('WAYLAND_DISPLAY', raising=False)
+
+    monkeypatch.setattr(gui.ctypes.util, 'find_library', lambda name: None)
+    assert gui.missing_xcb_cursor()
+
+    monkeypatch.setattr(gui.ctypes.util, 'find_library',
+                        lambda name: 'libxcb-cursor.so.0')
+    assert not gui.missing_xcb_cursor()
+
+
+@pytest.mark.parametrize('environment', [
+    {'QT_QPA_PLATFORM': 'offscreen'},     # a plugin was chosen explicitly
+    {'WAYLAND_DISPLAY': 'wayland-0'},     # xcb is not the plugin in use
+    {},                                   # no display at all
+])
+def test_xcb_check_stays_quiet_when_it_cannot_know(monkeypatch, environment):
+    """A false alarm would be worse than the message it replaces."""
+    from halostack import gui
+
+    monkeypatch.setattr(sys, 'platform', 'linux')
+    monkeypatch.setattr(gui.ctypes.util, 'find_library', lambda name: None)
+    for name in ('DISPLAY', 'QT_QPA_PLATFORM', 'WAYLAND_DISPLAY'):
+        monkeypatch.delenv(name, raising=False)
+    for name, value in environment.items():
+        monkeypatch.setenv(name, value)
+    if 'WAYLAND_DISPLAY' in environment:
+        monkeypatch.setenv('DISPLAY', ':0')
+
+    assert not gui.missing_xcb_cursor()
+
+
+def test_xcb_check_is_linux_only(monkeypatch):
+    """Windows and macOS have no xcb plugin to fail."""
+    from halostack import gui
+
+    monkeypatch.setattr(gui.ctypes.util, 'find_library', lambda name: None)
+    monkeypatch.setenv('DISPLAY', ':0')
+    for platform in ('win32', 'darwin'):
+        monkeypatch.setattr(sys, 'platform', platform)
+        assert not gui.missing_xcb_cursor()
+
+
+def test_xcb_message_names_a_package_for_each_distribution():
+    """Qt's own message names neither a package nor a distribution."""
+    from halostack import gui
+
+    message = gui.xcb_cursor_message()
+    assert 'libxcb-cursor0' in message
+    assert 'xcb-util-cursor' in message
+    assert '--cli' in message
