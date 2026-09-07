@@ -8,9 +8,40 @@
 Usage
 -----
 
-Command-line interface ``halostack_cli.py`` to Halostack libraries is
-available in the ``bin/`` directory.  There is also a very simple
-example how to generate B-R processed image, ``halostack_br.py``.
+Halostack has two interfaces, and one command chooses between them::
+
+  $ halostack                       # opens the window
+  $ halostack IMG_*.jpg             # opens the window with those images
+  $ halostack -a average.png *.jpg  # does the work and exits
+
+An option means "do this now", so anything with a switch on it runs on the
+command line.  Nothing but filenames, or nothing at all, opens the window.
+``--gui`` forces the window even when options are given, filling the controls
+in from them, and ``--cli`` forces the command line.
+
+``halostack_cli`` is always the command line and ``halostack_gui`` is always
+the window, whatever the arguments; scripts written against earlier versions
+can keep calling ``halostack_cli``.
+
+The window
+__________
+
+Everything below can be set in the window as well, and the layout follows the
+same order: the images, the alignment, the stacks to produce, the image
+processing, and the output settings.  The image being worked on is shown on
+the left of a divider that can be dragged to give either side more room.
+
+Alignment areas are dragged out on the preview rather than clicked as two
+corners: press *Pick reference area*, drag a box around the Sun, then press
+*Pick search area* and drag the larger box.  Both outlines stay on the image.
+
+Nothing is computed until *Run* is pressed, and a run can be stopped with
+*Cancel*.  A finished stack replaces the preview; *Undo* in the Edit menu goes
+back to the previous one, so a stack that came out worse than the last can be
+taken back.
+
+There is also a very simple example of how to generate a B-R processed image,
+``halostack_br``.
 
 
 Basic usage
@@ -19,7 +50,7 @@ ___________
 As a first step, we'll show how the alignment reference is selected
 from the first image in the stack.  To start, issue the following command::
 
-  $ halostack_cli.py -a average_stack.png *.jpg
+  $ halostack -a average_stack.png *.jpg
 
 You'll get a new window showing the first image:
 
@@ -56,7 +87,7 @@ commandline option.
 Commandline options
 ___________________
 
-``python bin/halostack_cli.py [options] <list of filenames>``
+``halostack_cli [options] <list of filenames>``
 
 - ``-a, --average-stack``
 
@@ -252,11 +283,11 @@ Below is an example configuration::
 
 These pre-set configurations can be used like this::
 
-    $ halostack_cli.py -C <configuration file> -c <config item>
+    $ halostack_cli -C <configuration file> -c <config item>
 
 For example, using the B-R configuration defined above::
 
-    $ halostack_cli.py -C config.ini -c br
+    $ halostack_cli -C config.ini -c br
 
 
 Image processing options

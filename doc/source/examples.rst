@@ -22,11 +22,11 @@ Command
 
 Generate average stack::
 
-  $ halostack_cli.py -a riikonen_ave_stack.png DSC_*
+  $ halostack_cli -a riikonen_ave_stack.png DSC_*
 
 Apply unsharp mask::
 
-  $ halostack_cli.py -a riikonen1_ave_stack_usm.png -e usm:40,8 riikonen_ave_stack.png
+  $ halostack_cli -a riikonen1_ave_stack_usm.png -e usm:40,8 riikonen_ave_stack.png
 
 Results
 =======
@@ -61,11 +61,11 @@ Command
 
 Generate maximum and average stacks::
 
-  $ halostack_cli.py -M riikonen2_max_stack.png -a riikonen2_ave_stack.png U*jpg
+  $ halostack_cli -M riikonen2_max_stack.png -a riikonen2_ave_stack.png U*jpg
 
 Apply unsharp mask sharpening to the average stack::
 
-  $ halostack_cli.py -a riikonen2_ave_usm.png -e usm:30,8 riikonen2_ave_stack.png
+  $ halostack_cli -a riikonen2_ave_usm.png -e usm:30,8 riikonen2_ave_stack.png
 
 Results
 =======
@@ -102,11 +102,11 @@ Commands
 
 Generate average stack::
 
-  $ halostack_cli.py -a lahtinen1_ave_stack.png 2012*jpg
+  $ halostack_cli -a lahtinen1_ave_stack.png 2012*jpg
 
 Apply USM::
 
-  $ halostack_cli.py -a lahtinen1_ave_stack_usm.png -e usm:20,8 lahtinen1_ave.png
+  $ halostack_cli -a lahtinen1_ave_stack_usm.png -e usm:20,8 lahtinen1_ave.png
 
 Results
 =======

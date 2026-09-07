@@ -20,18 +20,20 @@ Runs on Windows, macOS and Linux with Python 3.12 or newer. Every dependency
 ships as a binary wheel, so there is nothing to compile and no system package
 to install first.
 
-On Windows you can skip Python entirely: a standalone `halostack_cli.exe` is
-attached to each [release](https://github.com/pnuu/halostack/releases).
+On Windows you can skip Python entirely: a standalone `halostack.exe`, with
+both interfaces in it, is attached to each
+[release](https://github.com/pnuu/halostack/releases).
 
 Usage
 -----
 
 ```
-halostack_cli -a average_stack.png *.jpg
+halostack                              # opens the window
+halostack -a average_stack.png *.jpg   # command line, straight to work
 ```
 
-You are shown the first frame and asked to click two corners around the
-alignment reference, then two corners around the area to search for it in
-each of the remaining frames.
+An option means "do this now"; nothing but filenames opens the window with
+them loaded. In either interface you mark the alignment reference on the
+first frame, and the area to search for it in the remaining frames.
 
 The documentation is available at http://halostack.readthedocs.org/

@@ -9,13 +9,14 @@ Installation
 Windows: no installation at all
 +++++++++++++++++++++++++++++++
 
-A standalone ``halostack_cli.exe`` is built for every release and can be
+A standalone ``halostack.exe`` is built for every release and can be
 downloaded from the `releases page
-<https://github.com/pnuu/halostack/releases>`_.  It contains Python and
-everything Halostack needs, so there is nothing to install: put it wherever
-you like and run it from a command prompt::
+<https://github.com/pnuu/halostack/releases>`_.  It contains Python, the
+window and the command line, so there is nothing to install: put it wherever
+you like and double-click it, or run it from a command prompt::
 
-  C:\photos> halostack_cli.exe -a average_stack.png *.jpg
+  C:\photos> halostack.exe                            # the window
+  C:\photos> halostack.exe -a average_stack.png *.jpg  # straight to work
 
 The executable is about 110 MB and takes a few seconds to start, because it
 unpacks itself into a temporary directory on each run.  It is built only for
@@ -30,15 +31,25 @@ no compiler and no system package to install first::
 
   $ pip install halostack
 
+That gives both the window and the command line.  To leave out the window,
+and Qt with it::
+
+  $ pip install --no-deps halostack && pip install numpy scipy imageio \
+      pillow tifffile imagecodecs matplotlib
+
 To work from a source checkout instead::
 
   $ git clone https://github.com/pnuu/halostack.git
   $ cd halostack
   $ pip install -e .
 
-Either way you get the ``halostack_cli`` command, which works the same on all
-three operating systems.  A source checkout can also be run without
-installing, using the script in ``bin/``.
+Either way you get the ``halostack`` command, which works the same on all
+three operating systems, along with ``halostack_cli`` and ``halostack_gui``
+for the two interfaces on their own.  A source checkout can also be run
+without installing::
+
+  $ python -m halostack.launcher      # the window, or the command line
+  $ python -m halostack.cli --help
 
 Camera raw files
 ++++++++++++++++
@@ -60,7 +71,8 @@ imageio       reading and writing common image formats
 Pillow        image format support behind imageio
 tifffile      TIFF, at 8, 16 or 32 bits
 imagecodecs   PNG, at 8 or 16 bits
-Matplotlib    the interactive alignment preview
+Matplotlib    the command line's alignment preview
+PySide6       the window
 rawpy         camera raw files (optional, see above)
 ============  =====================================================
 

@@ -45,12 +45,23 @@ jobs:
           cache: pip
           cache-dependency-path: pyproject.toml
 
+      - name: Install the libraries Qt needs
+        # The PySide6 wheel expects these to be present; Windows and macOS
+        # ship them, a bare Linux runner does not.
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 libgl1 libxkbcommon0 libxkbcommon-x11-0 libdbus-1-3 \
+            libfontconfig1 libfreetype6
+
       - name: Install Halostack and its test dependencies
         # Installed rather than run from the checkout, so that the tests
-        # exercise what a user would actually get, packaging included.
+        # exercise what a user would actually get, packaging included. The
+        # gui extra brings PySide6, without which the GUI tests only skip.
         run: |
           python -m pip install --upgrade pip
-          python -m pip install ".[tests]"
+          python -m pip install ".[gui,tests]"
 
       - name: Show what is installed
         run: python -m pip list

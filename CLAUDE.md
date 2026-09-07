@@ -40,16 +40,17 @@ compiler, a system package, or a runtime download.
   no error. That would throw away half the dynamic range of a stack. TIFF goes
   through `tifffile`, other formats through `imageio`/Pillow, raw files through
   the optional `rawpy`.
-- `matplotlib` is only imported by `halostack/ui.py`, and `imagecodecs` only
-  inside the `halostack/io.py` functions that need it. Keep it that way: the
-  core modules import neither, which is what will let a future GUI be packaged
-  without dragging in a plotting library.
+- `matplotlib` is only imported by `halostack/ui.py`, `imagecodecs` only inside
+  the `halostack/io.py` functions that need it, and **PySide6 only inside
+  `halostack/gui/`**, which `launcher.py` imports lazily. Keep it that way: the
+  command line must not pay for Qt, and `tests/test_gui.py` skips rather than
+  fails when PySide6 is absent.
 
 ## Architecture
 
-The layering matters more than the individual modules: a GUI is planned, so
-nothing about *how the user is asked something* may leak into the processing
-code.
+The layering matters more than the individual modules: there are two front
+ends, so nothing about *how the user is asked something* may leak into the
+processing code.
 
 - **`io.py`** — the only module that knows about file formats. Everything above
   it sees float32 arrays scaled to `[0, 1]`, three channels, no alpha,
@@ -71,13 +72,24 @@ code.
   image it was handed: several stacks are routinely fed the same frames, and
   sharing a buffer let one silently overwrite another's result.
 - **`ui.py`** — `PointSelector` is the seam between processing and interaction.
-  `MatplotlibSelector` serves the CLI, `FixedPointSelector` serves tests and
-  scripts, and a GUI implements the same two methods against its own canvas.
+  `MatplotlibSelector` serves the CLI and `FixedPointSelector` serves tests and
+  scripts. The Qt window does not use a selector at all: it collects the areas
+  before starting and passes them to `stack_images()` directly, so no worker
+  thread ever blocks waiting for a click.
+- **`gui/`** — the Qt window, in four parts: `preview.py` (the image, zoom and
+  the area rubber band), `controls.py` (every CLI option as a widget),
+  `worker.py` (a QThread around `stack_images`) and `main_window.py` (the
+  splitter, the undo stack and the wiring). The enhancement controls are
+  generated from the `ENHANCEMENTS` registry, so a new method needs no GUI
+  change.
+- **`launcher.py`** — decides between the window and the command line. An
+  option means "do the work now"; bare filenames or nothing at all open the
+  window.
 - **`pipeline.py`** — `stack_images()` is the whole of the processing, with no
   knowledge of how it was invoked. It takes filenames and settings, asks a
   `PointSelector` for the areas, reports progress through a callback, and
-  returns the stacks. **New functionality belongs here, not in `cli.py`**, or
-  the GUI will not be able to reach it.
+  returns the stacks. **New functionality belongs here, not in `cli.py` or
+  `gui/`**, or only one of the two front ends will be able to reach it.
 - **`cli.py`** — argparse, config files and logging only.
 
 `-p/--nprocs` is a thread pool over the per-frame work (read, align, enhance).
@@ -88,13 +100,19 @@ gone.
 
 ## Packaging
 
-`.github/workflows/windows-executable.yml` builds a standalone
-`halostack_cli.exe` with PyInstaller, driven by `packaging/halostack.spec`.
+`.github/workflows/windows-executable.yml` builds a standalone `halostack.exe`
+containing both interfaces, with PyInstaller, driven by `packaging/halostack.spec`.
 The spec can be run on any platform (`pyinstaller --clean --noconfirm
 packaging/halostack.spec`), which is the way to check a packaging change
 without waiting for CI.
 
-Three things in that spec are load-bearing, each found by a build that
+**The entry script must not be called `halostack.py`.** PyInstaller registers
+the entry script as a module under its own basename, so a script with the
+package's name shadows the package: every `halostack.gui` import then fails to
+resolve and the bundle is built, silently, with no window in it. That is why
+the spec builds `packaging/entry.py`.
+
+Four things in that spec are load-bearing, each found by a build that
 succeeded and then failed at run time:
 
 - `imagecodecs` must be collected wholesale — it imports one compiled module
@@ -105,11 +123,15 @@ succeeded and then failed at run time:
 - Its plugins must *not* be collected wholesale: that pulls in the PyAV,
   OpenCV, GDAL and ITK bindings, whose shared libraries fail to load in ways
   imageio's plugin search does not catch. Only the Pillow plugin is needed.
+- `PySide6` must stay *out* of the exclude list, where it sat while the bundle
+  was command-line only. Unused Qt submodules are excluded individually.
 
 The workflow runs the test suite on Windows and then exercises the built
-executable on generated images across all three image backends. Keep that
-smoke test: a PyInstaller bundle that imports cleanly can still fail on the
-first file it opens.
+executable: a stacking run across all three image backends, and a start of the
+window under `QT_QPA_PLATFORM=offscreen` that has to still be running twenty
+seconds later. Keep both: a PyInstaller bundle that imports cleanly can still
+fail on the first file it opens, and one that runs the command line perfectly
+can still have no Qt in it at all.
 
 ## Compatibility
 

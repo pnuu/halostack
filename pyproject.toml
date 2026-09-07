@@ -40,6 +40,7 @@ dependencies = [
 
 [project.optional-dependencies]
 raw = ["rawpy>=0.15"]
+gui = ["pyside6-essentials>=6.5"]
 tests = ["pytest>=6"]
 
 [project.urls]
@@ -47,11 +48,17 @@ Homepage = "https://github.com/pnuu/halostack"
 Documentation = "http://halostack.readthedocs.org/"
 
 [project.scripts]
+# The window unless the arguments call for the command line; see
+# halostack.launcher.
+halostack = "halostack.launcher:main"
+# Always the command line, whatever the arguments, so that scripts written
+# against earlier versions keep working.
 halostack_cli = "halostack.cli:main"
+halostack_gui = "halostack.gui:main"
 halostack_br = "halostack.bin_br:main"
 
 [tool.setuptools]
-packages = ["halostack"]
+packages = ["halostack", "halostack.gui"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

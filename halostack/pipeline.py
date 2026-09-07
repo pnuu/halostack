@@ -54,10 +54,30 @@ StackingResult = namedtuple('StackingResult',
                             ['stacks', 'used', 'total', 'skipped'])
 
 
+class Cancelled(Exception):
+    """Raised when a run was stopped through its *cancel* callback."""
+
+
 def _report(progress, stage, done, total, message=''):
     """Call the progress callback, if there is one."""
     if progress is not None:
         progress(stage, done, total, message)
+
+
+def _check_cancelled(cancel):
+    """Raise :class:`Cancelled` if the caller has asked the run to stop.
+
+    *cancel* is either a callable returning true or a
+    :class:`threading.Event`, so that a caller can use whichever it already
+    has. Checks happen between frames and between stacks; a single NumPy
+    reduction cannot be interrupted part way through.
+    """
+    if cancel is None:
+        return
+    stop = cancel.is_set() if hasattr(cancel, 'is_set') else cancel()
+    if stop:
+        LOGGER.info("Run cancelled.")
+        raise Cancelled("The run was cancelled.")
 
 
 def _bounded_map(func, items, workers):
@@ -120,7 +140,8 @@ def select_areas(base_img, selector, view_gamma=None):
 def stack_images(filenames, requests, align=True, reference=None,
                  search_area=None, selector=None, correlation_threshold=0.7,
                  enhance_images=None, enhance_stacks=None, save_prefix=None,
-                 view_gamma=None, nprocs=1, bits=16, progress=None):
+                 view_gamma=None, nprocs=1, bits=16, progress=None,
+                 cancel=None):
     """Align and stack a series of images.
 
     :param filenames: images to stack; the first is the alignment reference
@@ -153,7 +174,11 @@ def stack_images(filenames, requests, align=True, reference=None,
     :type bits: int
     :param progress: called as ``progress(stage, done, total, message)``
     :type progress: callable or None
+    :param cancel: consulted between frames and between stacks; when it is
+                   true the run stops and :class:`Cancelled` is raised
+    :type cancel: callable, threading.Event or None
     :rtype: StackingResult
+    :raises Cancelled: if *cancel* became true during the run
     """
     filenames = list(filenames)
     requests = list(requests)
@@ -170,6 +195,7 @@ def stack_images(filenames, requests, align=True, reference=None,
     stacks = [Stack(request.mode, total, kwargs=request.options)
               for request in requests]
 
+    _check_cancelled(cancel)
     _report(progress, 'read', 0, total, filenames[0])
     base_img = Image(fname=filenames[0])
     LOGGER.debug("Using %s as base image.", filenames[0])
@@ -196,6 +222,10 @@ def stack_images(filenames, requests, align=True, reference=None,
     def prepare(item):
         """Read, align and enhance one frame. Returns None if it was rejected."""
         index, fname = item
+        # Checked here as well as in the loop below, so that work already
+        # queued on the thread pool stops as soon as it starts rather than
+        # running to completion first.
+        _check_cancelled(cancel)
         img = base_img if index == 0 else Image(fname=fname)
 
         if aligner is not None and index > 0:
@@ -215,6 +245,7 @@ def stack_images(filenames, requests, align=True, reference=None,
     skipped = []
     used = 0
     for index, fname, img in _bounded_map(prepare, enumerate(filenames), nprocs):
+        _check_cancelled(cancel)
         if img is None:
             LOGGER.warning("Skipping image %s.", fname)
             skipped.append(fname)
@@ -229,6 +260,7 @@ def stack_images(filenames, requests, align=True, reference=None,
 
     results = []
     for number, (request, stack) in enumerate(zip(requests, stacks)):
+        _check_cancelled(cancel)
         _report(progress, 'calculate', number, len(requests), request.mode)
         img = stack.calculate()
         if enhance_stacks:

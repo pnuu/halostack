@@ -1,6 +1,9 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-"""PyInstaller build of the Halostack command line tool.
+"""PyInstaller build of Halostack.
+
+One executable provides both interfaces: it opens the window unless the
+arguments call for the command line, which halostack.launcher decides.
 
 Used by .github/workflows/windows-executable.yml to produce a standalone
 Windows executable, and usable on any platform with::
@@ -24,6 +27,13 @@ REPO_ROOT = os.path.abspath(os.path.join(SPECPATH, os.pardir))
 datas = []
 binaries = []
 hiddenimports = [
+    # The window is imported lazily, so that the command line never pays for
+    # Qt. Name the modules to be sure they are collected anyway.
+    'halostack.gui',
+    'halostack.gui.main_window',
+    'halostack.gui.controls',
+    'halostack.gui.preview',
+    'halostack.gui.worker',
     # Matplotlib picks its backend at run time from a string, so nothing
     # imports this. Tk ships with the python.org and actions/setup-python
     # builds of Python.
@@ -71,6 +81,24 @@ for distribution in ('imageio', 'tifffile', 'matplotlib', 'numpy', 'scipy',
 # fail to load with an OSError that imageio's plugin search does not catch --
 # which breaks reading an ordinary JPEG. Excluding them leaves the plugins
 # named above, which are the ones Halostack uses.
+# Halostack's window uses QtCore, QtGui and QtWidgets and nothing else.
+# Excluding the rest of Qt roughly halves what PySide6 adds to the bundle.
+UNUSED_QT_MODULES = [
+    'PySide6.QtQml', 'PySide6.QtQuick', 'PySide6.QtQuickWidgets',
+    'PySide6.QtQuickControls2', 'PySide6.QtMultimedia',
+    'PySide6.QtMultimediaWidgets', 'PySide6.QtSql', 'PySide6.QtTest',
+    'PySide6.QtDesigner', 'PySide6.QtUiTools', 'PySide6.QtHelp',
+    'PySide6.QtWebChannel', 'PySide6.QtWebSockets', 'PySide6.QtWebEngineCore',
+    'PySide6.QtWebEngineWidgets', 'PySide6.QtWebEngineQuick',
+    'PySide6.QtPositioning', 'PySide6.QtSensors', 'PySide6.QtSerialPort',
+    'PySide6.QtBluetooth', 'PySide6.QtNfc', 'PySide6.QtTextToSpeech',
+    'PySide6.QtScxml', 'PySide6.QtStateMachine', 'PySide6.QtRemoteObjects',
+    'PySide6.QtSpatialAudio', 'PySide6.QtPdf', 'PySide6.QtPdfWidgets',
+    'PySide6.QtCharts', 'PySide6.QtDataVisualization', 'PySide6.Qt3DCore',
+    'PySide6.Qt3DRender', 'PySide6.Qt3DInput', 'PySide6.Qt3DLogic',
+    'PySide6.Qt3DAnimation', 'PySide6.Qt3DExtras', 'PySide6.QtNetworkAuth',
+]
+
 UNUSED_IMAGEIO_PLUGINS = [
     'imageio.plugins.ffmpeg', 'imageio.plugins.freeimage',
     'imageio.plugins.freeimagemulti', 'imageio.plugins.gdal',
@@ -79,7 +107,9 @@ UNUSED_IMAGEIO_PLUGINS = [
 ]
 
 analysis = Analysis(
-    [os.path.join(REPO_ROOT, 'bin', 'halostack_cli.py')],
+    # packaging/entry.py, not bin/halostack.py: see the note in that file
+    # about the entry script shadowing the package it imports.
+    [os.path.join(SPECPATH, 'entry.py')],
     # Put the repository itself on the search path, so that the build works
     # from a plain checkout as well as from an installed copy.
     pathex=[REPO_ROOT],
@@ -89,13 +119,16 @@ analysis = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=UNUSED_IMAGEIO_PLUGINS + [
+    excludes=UNUSED_IMAGEIO_PLUGINS + UNUSED_QT_MODULES + [
         # Backends for those plugins, in case they are installed alongside.
         'av', 'cv2', 'osgeo', 'SimpleITK',
         # Nothing here is imported by Halostack; excluding them keeps the
         # executable to a size that is reasonable to download.
         'pytest', 'sphinx', 'IPython', 'jupyter', 'notebook', 'pandas',
-        'PyQt5', 'PyQt6', 'PySide2', 'PySide6',
+        # PySide6 itself is NOT excluded: the window needs it. The other
+        # bindings are, so that having one installed cannot pull a second
+        # copy of Qt into the bundle.
+        'PyQt5', 'PyQt6', 'PySide2',
         'matplotlib.backends.backend_qtagg',
         'matplotlib.backends.backend_webagg',
     ],
@@ -111,14 +144,16 @@ exe = EXE(
     analysis.binaries,
     analysis.datas,
     [],
-    name='halostack_cli',
+    name='halostack',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=False,
     upx_exclude=[],
     runtime_tmpdir=None,
-    # A command line tool needs its console window.
+    # Console, because the same executable is the command line interface.
+    # On Windows this means the window opens with a console behind it; a
+    # windowed build would have no usable command line at all.
     console=True,
     disable_windowed_traceback=False,
     argv_emulation=False,

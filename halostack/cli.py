@@ -132,6 +132,14 @@ def build_parser():
                         help="Number of parallel workers")
     parser.add_argument("-v", "--version", action="version",
                         version="Halostack %s" % (__version__))
+    # Consumed by halostack.launcher before the parser ever sees them; listed
+    # here so that --help documents how to choose an interface.
+    parser.add_argument("--gui", action="store_true",
+                        help="Open the graphical interface. This is the "
+                             "default when no options are given")
+    parser.add_argument("--cli", "--no-gui", dest="cli", action="store_true",
+                        help="Use the command line even when no other "
+                             "options are given")
     parser.add_argument('fname_in', metavar="FILE", type=str, nargs='*',
                         help='List of files')
 

@@ -1,11 +1,13 @@
 """End-to-end tests for the stacking pipeline."""
 
+import threading
+
 import numpy as np
 import pytest
 
 from halostack import io
 from halostack.image import Image
-from halostack.pipeline import StackRequest, stack_images
+from halostack.pipeline import Cancelled, StackRequest, stack_images
 from halostack.ui import FixedPointSelector
 
 # Two clicks per area: the reference around the blob, then the wider search
@@ -169,3 +171,60 @@ def test_alignment_without_areas_or_selector_is_reported(frame_files):
 
     with pytest.raises(ValueError, match='selector'):
         stack_images(fnames, [StackRequest('mean', None)])
+
+
+def test_cancelling_stops_the_run(frame_files):
+    """A cancelled run raises rather than returning a partial stack."""
+    fnames, _ = frame_files
+
+    with pytest.raises(Cancelled):
+        stack_images(fnames, [StackRequest('mean', None)], align=False,
+                     cancel=lambda: True)
+
+
+def test_cancelling_accepts_an_event(frame_files):
+    """threading.Event is what a worker thread already has to hand."""
+    fnames, _ = frame_files
+    event = threading.Event()
+    event.set()
+
+    with pytest.raises(Cancelled):
+        stack_images(fnames, [StackRequest('mean', None)], align=False,
+                     cancel=event)
+
+
+def test_cancelling_part_way_through_stops_early(frame_files):
+    """Frames after the cancellation must not be read."""
+    fnames, _ = frame_files
+    done = []
+
+    result = None
+    with pytest.raises(Cancelled):
+        result = stack_images(
+            fnames, [StackRequest('mean', None)], align=False,
+            progress=lambda stage, n, total, msg: done.append(n)
+            if stage == 'stack' else None,
+            cancel=lambda: len(done) >= 2)
+
+    assert result is None
+    assert len(done) < len(fnames)
+
+
+@pytest.mark.parametrize('nprocs', [1, 3])
+def test_cancelling_works_with_worker_threads(frame_files, nprocs):
+    """Queued work has to stop too, not run to completion first."""
+    fnames, _ = frame_files
+
+    with pytest.raises(Cancelled):
+        stack_images(fnames, [StackRequest('mean', None)], align=False,
+                     nprocs=nprocs, cancel=lambda: True)
+
+
+def test_not_cancelling_changes_nothing(frame_files):
+    """A cancel callback that stays false must not affect the result."""
+    fnames, _ = frame_files
+
+    result = stack_images(fnames, [StackRequest('mean', None)], align=False,
+                          cancel=lambda: False)
+
+    assert result.used == 3

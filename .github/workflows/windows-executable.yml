@@ -1,7 +1,9 @@
 name: Windows executable
 
-# Builds Halostack into a single self-contained halostack_cli.exe that runs on
-# a Windows machine with no Python installed.
+# Builds Halostack into a single self-contained halostack.exe that runs on a
+# Windows machine with no Python installed. The one executable provides both
+# interfaces: it opens the window unless the arguments call for the command
+# line.
 
 on:
   push:
@@ -16,7 +18,7 @@ permissions:
 
 jobs:
   build:
-    name: Build halostack_cli.exe
+    name: Build halostack.exe
     runs-on: windows-latest
     timeout-minutes: 30
 
@@ -36,11 +38,14 @@ jobs:
       - name: Install Halostack and the build tools
         run: |
           python -m pip install --upgrade pip
-          python -m pip install ".[raw,tests]" pyinstaller
+          python -m pip install ".[gui,raw,tests]" pyinstaller
 
       - name: Run the test suite on Windows
         # The executable is only worth building if the code works on the
-        # platform it is being built for.
+        # platform it is being built for. The GUI tests run here too, through
+        # Qt's offscreen platform, since the runner has no desktop.
+        env:
+          QT_QPA_PLATFORM: offscreen
         run: pytest -q
 
       - name: Build the executable
@@ -68,8 +73,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          EXE=dist/halostack_cli.exe
+          EXE=dist/halostack.exe
 
+          # An option means the command line, so this must not open a window.
           "$EXE" --version
 
           "$EXE" -n -a smoke_avg.png -m smoke_min.png -M smoke_max.png \
@@ -87,16 +93,36 @@ jobs:
           "$EXE" -n -a smoke_restack.png smoke_avg.png smoke_min.png
           test -s smoke_restack.png
 
+      - name: Check that the window opens
+        # The GUI half of the bundle fails in its own ways: a missing Qt
+        # plugin shows up only when a QApplication is created. Start it
+        # offscreen and require that it is still running a few seconds later.
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          $proc = Start-Process -FilePath dist\halostack.exe -ArgumentList '--gui' `
+                    -PassThru -RedirectStandardError gui_stderr.txt `
+                    -RedirectStandardOutput gui_stdout.txt
+          Start-Sleep -Seconds 20
+          if ($proc.HasExited) {
+            Write-Host "::error::The window exited immediately (code $($proc.ExitCode))"
+            Get-Content gui_stdout.txt, gui_stderr.txt
+            exit 1
+          }
+          Stop-Process -Id $proc.Id -Force
+          Write-Host "The window started and stayed up."
+
       - name: Report the size of the executable
         shell: bash
         run: |
-          ls -l dist/halostack_cli.exe |
-            awk '{printf "halostack_cli.exe is %.1f MB\n", $5/1048576}'
+          ls -l dist/halostack.exe |
+            awk '{printf "halostack.exe is %.1f MB\n", $5/1048576}'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: halostack_cli-windows-x64
-          path: dist/halostack_cli.exe
+          name: halostack-windows-x64
+          path: dist/halostack.exe
           if-no-files-found: error
           retention-days: 30
 
@@ -111,16 +137,16 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: halostack_cli-windows-x64
+          name: halostack-windows-x64
 
       - name: Upload to the release for this tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}
         run: |
-          mv halostack_cli.exe "halostack_cli-${TAG}-windows-x64.exe"
+          mv halostack.exe "halostack-${TAG}-windows-x64.exe"
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
             || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
                  --title "$TAG" --generate-notes
-          gh release upload "$TAG" "halostack_cli-${TAG}-windows-x64.exe" \
+          gh release upload "$TAG" "halostack-${TAG}-windows-x64.exe" \
             --repo "$GITHUB_REPOSITORY" --clobber
